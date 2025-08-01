@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 const studentSchema = new mongoose.Schema({
   aplication_id: {
     type: String,
+    required:true,
   },
   name: {
     type: String,

@@ -1,5 +1,6 @@
 import express from "express"
-import { applyController } from "../controllers/studentControllers.js";
+import { applyController, bulkApplyController, downloadExcelController } from "../controllers/studentControllers.js";
+import { isAuth } from "../middlewares/authMiddleware.js";
 
 
 
@@ -7,7 +8,13 @@ import { applyController } from "../controllers/studentControllers.js";
 const router = express.Router();
 
 
-//routers
+//APPLY ROUTES
 router.post("/apply",applyController)
+
+//BULK APPLY 
+router.post("/bulk-apply",isAuth,bulkApplyController)
+
+//DOWNLOAD STUDENTS DATA IN EXCEL
+router.get("/downalod-data",isAuth,downloadExcelController)
 
 export default router;

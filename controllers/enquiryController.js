@@ -1,104 +1,122 @@
 import enquiryModel from "../models/enquiryModel.js";
 
-//CREATE ENQUIRY
+// CREATE ENQUIRY
 export const createEnquiryController = async (req, res) => {
   try {
-    const { full_name, email, phone_number, subject, message } = req.body;
-    //validation
+    const { fullName, email, phone, message } = req.body;
+
+    // Validate required fields
+    if (!fullName || !email || !message) {
+      return res.status(400).send({
+        success: false,
+        message: "Full name, email, and message are required.",
+      });
+    }
+
     const enquiry = await enquiryModel.create({
-      full_name,
+      fullName,
       email,
-      phone_number,
-      subject,
+      phone,
       message,
     });
+
     res.status(201).send({
       success: true,
-      message: "Enquiry Created",
+      message: "Enquiry created successfully.",
       enquiry,
     });
   } catch (error) {
-    console.log(error);
+    console.error("CREATE ENQUIRY ERROR:", error);
     res.status(500).send({
       success: false,
-      message: "error in CREATE ENQUIRY API",
+      message: error.message || "Error in CREATE ENQUIRY API",
     });
   }
 };
 
-//GET ALL ENRUIRY
+// GET ALL ENQUIRIES
 export const getAllEnquiryController = async (req, res) => {
   try {
-    const enquirys = await enquiryModel.find({});
+    const enquiries = await enquiryModel.find({});
     res.status(200).send({
       success: true,
-      message: "Fetched All Enquiry",
-      enquirys,
+      message: "Fetched all enquiries.",
+      enquiries,
     });
   } catch (error) {
-    console.log(error);
+    console.error("GET ALL ENQUIRIES ERROR:", error);
     res.status(500).send({
       success: false,
-      message: "ERROR IN GET ALL ENQUIRY API",
+      message: "Error in GET ALL ENQUIRY API",
     });
   }
 };
 
-//GET SINGLE ENQUIRY
+// GET SINGLE ENQUIRY
 export const getSingleEnquiryController = async (req, res) => {
   try {
     const enquiry = await enquiryModel.findById(req.params.id);
+
     if (!enquiry) {
-      res.status(404).send({
+      return res.status(404).send({
         success: false,
-        message: "ENQUIRY NOT FOUND",
+        message: "Enquiry not found.",
       });
     }
+
     res.status(200).send({
       success: true,
-      message: "ENQUIRY is found",
+      message: "Enquiry found.",
       enquiry,
     });
   } catch (error) {
-    console.log(error);
+    console.error("GET SINGLE ENQUIRY ERROR:", error);
     res.status(500).send({
       success: false,
-      message: "ERROR IN GET SINGLE ENQUIRY API",
+      message: "Error in GET SINGLE ENQUIRY API",
     });
   }
 };
 
-//DELETE SINGLE ENQUIRY
+// DELETE SINGLE ENQUIRY
 export const deleteSingleEnquiryController = async (req, res) => {
   try {
-    const enquiry = await enquiryModel.findByIdAndDelete(req.params.id)
+    const enquiry = await enquiryModel.findByIdAndDelete(req.params.id);
+
+    if (!enquiry) {
+      return res.status(404).send({
+        success: false,
+        message: "Enquiry not found.",
+      });
+    }
+
     res.status(200).send({
-        success:true,
-        message:"ENQUIRY IS DELETED",
-        enquiry
+      success: true,
+      message: "Enquiry deleted successfully.",
+      enquiry,
     });
   } catch (error) {
-    console.log(error);
+    console.error("DELETE SINGLE ENQUIRY ERROR:", error);
     res.status(500).send({
       success: false,
-      message: "ERROR IN DELETE SINGLE ENQUIRY API",
+      message: "Error in DELETE SINGLE ENQUIRY API",
     });
   }
 };
 
-//DELETE ALL ENQUIRY
+// DELETE ALL ENQUIRIES
 export const deleteAllEnquiryController = async (req, res) => {
   try {
     await enquiryModel.deleteMany({});
     res.status(200).send({
       success: true,
-      message: "ALL DATA IS DELETED",
+      message: "All enquiries deleted successfully.",
     });
   } catch (error) {
-    console.log(error);
+    console.error("DELETE ALL ENQUIRIES ERROR:", error);
     res.status(500).send({
       success: false,
-      message: "ERROR IN DELETE ALL ENQUIRY API",
+      message: "Error in DELETE ALL ENQUIRY API",
     });
   }
 };

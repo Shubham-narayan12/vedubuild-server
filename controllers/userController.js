@@ -67,11 +67,14 @@ export const userLoginController = async (req, res) => {
     res
       .status(200)
       .cookie("token", token, {
+        httpOnly: true,
+        secure: true, // only send over HTTPS
+        sameSite: "None", // important for cross-origin (frontend/backend different domain)
         expires: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
       })
       .send({
         success: true,
-        message: "LOGIN SUCCESSFULL",
+        message: "LOGIN SUCCESSFUL",
       });
   } catch (error) {
     console.log(error);

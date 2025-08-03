@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
-import bcrypt from "bcryptjs"
-import JWT from "jsonwebtoken"
+import bcrypt from "bcryptjs";
+import JWT from "jsonwebtoken";
 
 const userSchema = new mongoose.Schema(
   {
@@ -35,7 +35,6 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-
 //HASH FUNCTION FOR PASSWORD ENCRYPT
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
@@ -53,7 +52,6 @@ userSchema.methods.generateToken = function () {
     expiresIn: "7d",
   });
 };
-
 
 const userModel = mongoose.model("User", userSchema);
 export default userModel;

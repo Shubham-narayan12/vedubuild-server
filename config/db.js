@@ -1,6 +1,8 @@
 import mongoose from "mongoose";
+import dotenv from "dotenv";
 
-const ATLASDB_URL = "mongodb+srv://narayandivya00:0OABJiPpNNJp6OJp@cluster0.0wpjdpm.mongodb.net/VeduBuild"
+dotenv.config();
+const ATLASDB_URL = process.env.MONGO_URL;
 const connectDb = async () => {
   try {
     await mongoose.connect(ATLASDB_URL);
@@ -11,4 +13,3 @@ const connectDb = async () => {
 };
 
 export default connectDb;
-

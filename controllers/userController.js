@@ -36,6 +36,7 @@ export const createUserController = async (req, res) => {
   }
 };
 
+
 //LOGIN USER
 export const userLoginController = async (req, res) => {
   try {

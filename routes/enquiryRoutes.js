@@ -3,6 +3,7 @@ import {
   createEnquiryController,
   deleteAllEnquiryController,
   deleteSingleEnquiryController,
+  downloadEnquiryExcelController,
   getAllEnquiryController,
   getSingleEnquiryController,
 } from "../controllers/enquiryController.js";
@@ -27,5 +28,8 @@ router.delete("/:id", isAuth, deleteSingleEnquiryController);
 
 //DELET ALL ENQUIRY
 router.delete("/all-enquiry", isAuth, deleteAllEnquiryController);
+
+//DOWNLOAD ALL ENQUIRES
+router.get("/download/data",downloadEnquiryExcelController)
 
 export default router;

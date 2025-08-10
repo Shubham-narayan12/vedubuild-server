@@ -7,6 +7,7 @@ import express from "express";
 import cors from "cors";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
+import bodyParser from "body-parser";
 
 // DB Connection
 import connectDb from "./config/db.js";
@@ -15,7 +16,8 @@ import connectDb from "./config/db.js";
 import applyRoutes from "./routes/studentRoutes.js";
 import enquiryRoutes from "./routes/enquiryRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
-
+import syllabusRoutes from "./routes/syllabusRoutes.js"
+import otpVerificationRoutes from "./routes/otpRoutes.js"
 // Connect to database
 connectDb();
 
@@ -48,11 +50,14 @@ app.use(morgan("dev"));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
+app.use(bodyParser.json());
 
 // Routes
 app.use("/api/vedubuildApply", applyRoutes);
 app.use("/api/enquiry", enquiryRoutes);
 app.use("/api/user", userRoutes);
+app.use("/api/syllabus", syllabusRoutes);
+app.use("/api/otp",otpVerificationRoutes);
 
 // Test Route
 app.get("/", (req, res) => {

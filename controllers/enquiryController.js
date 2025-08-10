@@ -1,4 +1,12 @@
 import enquiryModel from "../models/enquiryModel.js";
+import ExcelJS from "exceljs";
+import { fileURLToPath } from "url";
+import fs from "fs";
+import path from "path";
+
+// SET PATH
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // CREATE ENQUIRY
 export const createEnquiryController = async (req, res) => {
@@ -117,6 +125,68 @@ export const deleteAllEnquiryController = async (req, res) => {
     res.status(500).send({
       success: false,
       message: "Error in DELETE ALL ENQUIRY API",
+    });
+  }
+};
+
+//DOWNLOAD ALL ENQUIRY IN EXCEL
+export const downloadEnquiryExcelController = async (req, res) => {
+  try {
+    const enquires = await enquiryModel.find(
+      {},
+      {
+        fullName: 1,
+        email: 1,
+        phone: 1,
+        message: 1,
+        date: 1,
+        _id: 0,
+      }
+    );
+    //create a new workbook and worksheet
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Enquires");
+
+    //add columns in excel file
+    worksheet.columns = [
+      { header: "Name", key: "fullName", width: 20 },
+      { header: "Mobile Number", key: "phone", width: 15 },
+      { header: "Email", key: "email", width: 30 },
+      { header: "Address", key: "message", width: 45 },
+      { header: "Date", key: "date", width: 20 },
+    ];
+
+    // Style header row
+    worksheet.getRow(1).eachCell((cell) => {
+      cell.font = { bold: true }; // Bold text
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFFF00" }, // Yellow background
+      };
+      cell.alignment = { horizontal: "center" }; // Center align text
+    });
+
+    //Add rows
+    enquires.forEach((enquire) => {
+      worksheet.addRow(enquire);
+    });
+
+    //Set response header
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader("Content-Disposition", "attachment; filename=Enquirys.xlsx");
+
+    // Write workbook to response stream
+    await workbook.xlsx.write(res);
+    res.status(200).end();
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      success: false,
+      message: "Error in ENQUIRY GENERATE EXCEL API",
     });
   }
 };

@@ -31,6 +31,14 @@ const userSchema = new mongoose.Schema(
       required: [true, "phone is required"],
       unique: [true, "phone number already register"],
     },
+    otp: {
+      type: String,
+      default: null,
+    },
+    otpExpire: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );

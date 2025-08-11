@@ -17,7 +17,7 @@ const upload = multer({ storage });
 router.post("/upload",upload.single("file"),syllabusUploadController)
 
 //DOWNLOAD SYLLABUS
-router.get("/download/:id",syllabusDownloadController)
+router.get("/download",syllabusDownloadController)
 
 
 

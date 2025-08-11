@@ -1,11 +1,14 @@
 import syllabusModel from "../models/syllabusModel.js";
 
+//UPLOAD SYLLABUS
 export const syllabusUploadController = async (req, res) => {
   try {
+    const { classStd } = req.body;
     const syllabus = new syllabusModel({
       filename: req.file.originalname,
       file: req.file.buffer,
       contentType: req.file.mimetype,
+      classStd,
     });
     await syllabus.save();
     res.status(201).send({
@@ -21,10 +24,11 @@ export const syllabusUploadController = async (req, res) => {
   }
 };
 
+//DOWNLOLAD SYLLABUS
 export const syllabusDownloadController = async (req, res) => {
   try {
-    const { id } = req.params;
-    const syllabus = await syllabusModel.findById(id);
+    const { classStd } = req.query;
+    const syllabus = await syllabusModel.findOne({ classStd });
 
     if (!syllabus) {
       return res.status(404).send({ message: "PDF not found" });
@@ -36,7 +40,6 @@ export const syllabusDownloadController = async (req, res) => {
       "Content-Disposition": `attachment; filename="${syllabus.filename}"`,
     });
     res.send(syllabus.file);
-    
   } catch (error) {
     console.error(error);
     res.status(500).send({

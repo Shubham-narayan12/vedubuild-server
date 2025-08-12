@@ -3,6 +3,9 @@ import {
   phoneOtpVerification,
 } from "../models/otpModel.js";
 
+import { sendEmail } from "../utils/sendemail.js";
+import { sendSms } from "../utils/sendsms.js";
+
 // Generate OTP helper
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -39,8 +42,12 @@ export const requestEmailOtp = async (req, res) => {
       await otpEntry.save();
     }
 
-    // TODO: Send OTP by email using nodemailer
-    console.log(`Email OTP for ${email}: ${emailOtp}`);
+    await sendEmail(
+      email,
+      "Verify Email OTP",
+      "otpEmail",
+      { otp: emailOtp, expiry: 5 } 
+    );
 
     res.json({ success: true, message: "Email OTP sent" });
   } catch (error) {
@@ -79,12 +86,11 @@ export const requestPhoneOtp = async (req, res) => {
       await otpEntry.save();
     }
 
-    // TODO: Send OTP by SMS using Twilio
-    console.log(`Phone OTP for ${phone}: ${phoneOtp}`);
+    await sendSms(phone, phoneOtp);
 
     res.json({
       success: true,
-      message: `Phone OTP sent and Phone OTP for ${phone}: ${phoneOtp}`,
+      message: `OTP sent successfully to ${phone}`,
     });
   } catch (error) {
     console.error("Error requesting phone OTP:", error);

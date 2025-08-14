@@ -14,8 +14,8 @@ function generateOTP() {
 //GENERATE EMAIL OTP AND SEND
 export const requestEmailOtp = async (req, res) => {
   try {
-    const { email } = req.body;
-    if (!email)
+    const { emailId } = req.body;
+    if (!emailId)
       return res
         .status(400)
         .json({ success: false, message: "Email required" });
@@ -23,7 +23,7 @@ export const requestEmailOtp = async (req, res) => {
     const emailOtp = generateOTP();
 
     // Upsert OTP entry
-    let otpEntry = await emailOtpVerification.findOne({ email }); ////email otp
+    let otpEntry = await emailOtpVerification.findOne({ emailId}); ////email otp
     if (otpEntry) {
       otpEntry.emailOtp = emailOtp;
       otpEntry.emailVerified = false;
@@ -33,7 +33,7 @@ export const requestEmailOtp = async (req, res) => {
       otpEntry = new emailOtpVerification({
         //email otp
 
-        email,
+        emailId,
 
         emailOtp,
 
@@ -43,7 +43,7 @@ export const requestEmailOtp = async (req, res) => {
     }
 
     await sendEmail(
-      email,
+      emailId,
       "Verify Email OTP",
       "otpEmail",
       { otp: emailOtp, expiry: 5 } 
@@ -60,15 +60,15 @@ export const requestEmailOtp = async (req, res) => {
 
 export const requestPhoneOtp = async (req, res) => {
   try {
-    const { phone } = req.body;
-    if (!phone)
+    const { mobileNo } = req.body;
+    if (!mobileNo)
       return res
         .status(400)
         .json({ success: false, message: "Phone required" });
 
     const phoneOtp = generateOTP();
 
-    let otpEntry = await phoneOtpVerification.findOne({ phone }); ///phone otp
+    let otpEntry = await phoneOtpVerification.findOne({ mobileNo }); ///phone otp
     if (otpEntry) {
       otpEntry.phoneOtp = phoneOtp;
       otpEntry.phoneVerified = false;
@@ -77,7 +77,7 @@ export const requestPhoneOtp = async (req, res) => {
     } else {
       otpEntry = new phoneOtpVerification({
         //phone otp
-        phone,
+        mobileNo,
 
         phoneOtp,
 
@@ -86,11 +86,11 @@ export const requestPhoneOtp = async (req, res) => {
       await otpEntry.save();
     }
 
-    await sendSms(phone, phoneOtp);
+    await sendSms(mobileNo, phoneOtp);
 
     res.json({
       success: true,
-      message: `OTP sent successfully to ${phone}`,
+      message: `OTP sent successfully to ${mobileNo}`,
     });
   } catch (error) {
     console.error("Error requesting phone OTP:", error);
@@ -103,13 +103,13 @@ export const requestPhoneOtp = async (req, res) => {
 //VERIFY EMAIL OTP
 export const verifyEmailController = async (req, res) => {
   try {
-    const { email, otp } = req.body;
-    if (!email || !otp)
+    const { emailId, otp } = req.body;
+    if (!emailId || !otp)
       return res
         .status(400)
         .json({ success: false, message: "Email and OTP required" });
 
-    const otpEntry = await emailOtpVerification.findOne({ email });
+    const otpEntry = await emailOtpVerification.findOne({ emailId });
     if (!otpEntry)
       return res.status(404).json({
         success: false,
@@ -139,13 +139,13 @@ export const verifyEmailController = async (req, res) => {
 
 //VERIFY PHONE OTP
 export const verifyPhoneController = async (req, res) => {
-  const { phone, otp } = req.body;
-  if (!phone || !otp)
+  const { mobileNo, otp } = req.body;
+  if (!mobileNo || !otp)
     return res
       .status(400)
       .json({ success: false, message: "Phone and OTP required" });
 
-  const otpEntry = await phoneOtpVerification.findOne({ phone });
+  const otpEntry = await phoneOtpVerification.findOne({mobileNo });
   if (!otpEntry)
     return res
       .status(404)

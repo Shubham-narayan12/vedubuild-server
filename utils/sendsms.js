@@ -13,10 +13,11 @@ const client = twilio(
  */
 export async function sendSms(to, body) {
   try {
+    const toNumber = `+91${to}`
     const message = await client.messages.create({
       body,
       from: process.env.TWILIO_PHONE_NUMBER, // Your Twilio number
-      to,
+      to:toNumber,
     });
 
     console.log("SMS sent:", message.sid);

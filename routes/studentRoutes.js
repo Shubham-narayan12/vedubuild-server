@@ -18,7 +18,7 @@ router.post("/apply",applyController)
 router.post("/bulk-apply", upload.single("file"),bulkApplyController)
 
 //DOWNLOAD STUDENTS DATA IN EXCEL
-router.get("/downalod-data",isAuth,downloadExcelController)
+router.get("/download-data",downloadExcelController)
 
 //STUDENT LOGIN
 router.post("/login",studentLoginController)    //password = 0HnauiOZ

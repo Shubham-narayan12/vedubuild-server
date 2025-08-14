@@ -33,51 +33,49 @@ export const applyController = async (req, res) => {
     };
 
     const {
-      name,
-      number,
-      email,
-      addresh,
+      studentName,
+      mobileNo,
+      emailId,
+      address,
       city,
-      state,
-      pincode,
-      college_name,
-      aadhar_number,
-      program,
-      classStd,
+      district,
+      pinCode,
+      schoolCollege,
+      aadharNo,
+      scholarship,
+      studentClass,
     } = req.body;
 
-    let { password } = req.body;
-
-    password = generatePassword();
+    const password = generatePassword();
     const aplication_id = generateAppID();
 
     //validation
     if (
       !aplication_id ||
-      !name ||
-      !number ||
-      !email ||
+      !studentName ||
+      !mobileNo ||
+      !emailId ||
       !password ||
-      !addresh ||
+      !address ||
       !city ||
-      !state ||
-      !pincode ||
-      !college_name ||
-      !aadhar_number ||
-      !program ||
-      !classStd
+      !district ||
+      !pinCode ||
+      !schoolCollege ||
+      !aadharNo ||
+      !scholarship ||
+      !studentClass
     ) {
       return res.status(500).send({
         success: false,
         message: "please provide all details",
       });
     }
-    //Checking Existing Emailid
-    const existingEmail = await studentModel.findOne({ email });
-    if (existingEmail) {
+    //Checking Existing emailIdid
+    const existingemailId = await studentModel.findOne({ emailId });
+    if (existingemailId) {
       return res.status(500).send({
         success: false,
-        message: "email already Exist",
+        message: "emailId already Exist",
       });
     }
     // Read default certificate PDF
@@ -89,22 +87,22 @@ export const applyController = async (req, res) => {
     const certificateBuffer = fs.readFileSync(certificatePath);
 
     //save krne se phele password bhejna hain
-    console.log(`your email:${email} and password:${password}`);
+    console.log(`your emailId:${emailId} and password:${password}`);
 
     const student = await studentModel.create({
       aplication_id,
-      name,
-      number,
-      email,
+      studentName,
+      mobileNo,
+      emailId,
       password,
-      addresh,
+      address,
       city,
-      state,
-      pincode,
-      college_name,
-      aadhar_number,
-      program,
-      classStd,
+      district,
+      pinCode,
+      schoolCollege,
+      aadharNo,
+      scholarship,
+      studentClass,
       certificate: {
         file: certificateBuffer,
         contentType: "application/pdf",
@@ -169,25 +167,29 @@ export const bulkApplyController = async (req, res) => {
 
     const studentsData = rows.map((r) => ({
       aplication_id: generateAppID(),
-      name: r.name ?? "",
-      number: r.number ? Number(r.number) : r.mobile ? Number(r.mobile) : null,
-      email: r.email ?? "",
-      addresh: r.addresh ?? r.address ?? r.residence ?? "",
+      studentName: r.studentName ?? "",
+      mobileNo: r.mobileNo
+        ? Number(r.mobileNo)
+        : r.mobile
+        ? Number(r.mobile)
+        : null,
+      emailId: r.emailId ?? "",
+      address: r.address ?? r.address ?? r.residence ?? "",
       city: r.city ?? "",
-      state: r.state ?? "",
-      pincode: r.pincode ? Number(r.pincode) : null,
-      college_name: r.college_name ?? r.college ?? "",
-      aadhar_number: r.aadhar_number
-        ? Number(r.aadhar_number)
+      district: r.district ?? "",
+      pinCode: r.pinCode ? Number(r.pinCode) : null,
+      schoolCollege: r.schoolCollege ?? r.college ?? "",
+      aadharNo: r.aadharNo
+        ? Number(r.aadharNo)
         : r.aadhar
         ? Number(r.aadhar)
         : null,
-      program: r.program ?? r.course ?? "",
-      classStd: r.classstd ?? r.class ?? r.standard ?? "",
+      scholarship: r.scholarship ?? r.course ?? "",
+      studentClass: r.studentClass ?? r.studentClass ?? r.standard ?? "",
     }));
 
     const filtered = studentsData.filter(
-      (s) => s.aplication_id && s.name && s.number && s.email
+      (s) => s.aplication_id && s.studentName && s.mobileNo && s.emailId
     );
     const result = await studentModel.insertMany(filtered, { ordered: false });
 
@@ -225,17 +227,17 @@ export const downloadExcelController = async (req, res) => {
       {},
       {
         aplication_id: 1,
-        name: 1,
-        number: 1,
-        email: 1,
-        addresh: 1,
+        studentName: 1,
+        mobileNo: 1,
+        emailId: 1,
+        address: 1,
         city: 1,
-        state: 1,
-        pincode: 1,
-        college_name: 1,
-        aadhar_number: 1,
-        program: 1,
-        classStd: 1,
+        district: 1,
+        pinCode: 1,
+        schoolCollege: 1,
+        aadharNo: 1,
+        scholarship: 1,
+        studentClass: 1,
         _id: 0,
       }
     );
@@ -246,17 +248,17 @@ export const downloadExcelController = async (req, res) => {
     //add columns in excel file
     worksheet.columns = [
       { header: "Application ID", key: "aplication_id", width: 20 },
-      { header: "Name", key: "name", width: 20 },
-      { header: "Mobile Number", key: "number", width: 15 },
-      { header: "Email", key: "email", width: 25 },
-      { header: "Address", key: "addresh", width: 30 },
+      { header: "studentName", key: "studentName", width: 20 },
+      { header: "Mobile Number", key: "mobileNo", width: 15 },
+      { header: "emailId", key: "emailId", width: 25 },
+      { header: "Address", key: "address", width: 30 },
       { header: "City", key: "city", width: 15 },
-      { header: "State", key: "state", width: 15 },
-      { header: "Pincode", key: "pincode", width: 10 },
-      { header: "College Name", key: "college_name", width: 25 },
-      { header: "Aadhar Number", key: "aadhar_number", width: 20 },
-      { header: "Program", key: "program", width: 15 },
-      { header: "Class", key: "classStd", width: 15 },
+      { header: "district", key: "district", width: 15 },
+      { header: "pinCode", key: "pinCode", width: 10 },
+      { header: "College Name", key: "schoolCollege", width: 25 },
+      { header: "Aadhar Number", key: "aadharNo", width: 20 },
+      { header: "scholarship", key: "scholarship", width: 15 },
+      { header: " studentClass", key: " studentClass", width: 15 },
     ];
 
     // Add rows
@@ -286,14 +288,14 @@ export const downloadExcelController = async (req, res) => {
 //STUDENT LOGIN
 export const studentLoginController = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password) {
+    const { emailId, password } = req.body;
+    if (!emailId || !password) {
       return res.status(500).send({
         success: false,
         message: "please provide username and password",
       });
     }
-    const user = await studentModel.findOne({ email });
+    const user = await studentModel.findOne({ emailId });
     if (!user) {
       return res.status(404).send({
         success: false,
@@ -359,14 +361,14 @@ export const studentLogoutController = async (req, res) => {
 //STUDENT REQUEST FOR OTP FOR PASSWORD RESET
 export const requestOtpController = async (req, res) => {
   try {
-    const { email } = req.body;
-    if (!email) {
+    const { emailId } = req.body;
+    if (!emailId) {
       return res
         .status(400)
-        .send({ success: false, message: "Email is required" });
+        .send({ success: false, message: "emailId is required" });
     }
 
-    const user = await studentModel.findOne({ email });
+    const user = await studentModel.findOne({ emailId });
     if (!user) {
       return res
         .status(404)
@@ -378,10 +380,10 @@ export const requestOtpController = async (req, res) => {
     user.otp = otp;
     user.otpExpire = Date.now() + 2 * 60 * 1000; // 2 min
     await user.save();
-    console.log(`OTP FOR PASSWORD ${email} = ${otp} `),
+    console.log(`OTP FOR PASSWORD ${emailId} = ${otp} `),
       res.status(200).send({
         success: true,
-        message: "OTP sent to email",
+        message: "OTP sent to emailId",
       });
   } catch (error) {
     console.log(error);
@@ -392,14 +394,14 @@ export const requestOtpController = async (req, res) => {
 // STUDENT RESET PASSWORD WITH OTP
 export const resetPasswordWithOtpController = async (req, res) => {
   try {
-    const { email, otp, newPassword } = req.body;
-    if (!email || !otp || !newPassword) {
+    const { emailId, otp, newPassword } = req.body;
+    if (!emailId || !otp || !newPassword) {
       return res
         .status(400)
         .send({ success: false, message: "All fields are required" });
     }
     const user = await studentModel.findOne({
-      email,
+      emailId,
       otp,
       otpExpire: { $gt: Date.now() }, // OTP not expired
     });
@@ -428,14 +430,16 @@ export const resetPasswordWithOtpController = async (req, res) => {
 //DOWNLOAD CERTIFICATE
 export const downloadCertificateController = async (req, res) => {
   try {
-    const { email } = req.query;
+    const { emailId } = req.query;
 
-    const student = await studentModel.findOne({ email });
+    const student = await studentModel.findOne({ emailId });
     if (!student) {
       return res.status(404).send({ message: "Student not found" });
     }
     if (!student.canDownloadCertificate) {
-      return res.status(403).send({ message: "Certificate download not allowed yet" });
+      return res
+        .status(403)
+        .send({ message: "Certificate download not allowed yet" });
     }
     if (!student.certificate || !student.certificate.file) {
       return res.status(404).send({ message: "Certificate file not found" });
@@ -453,3 +457,4 @@ export const downloadCertificateController = async (req, res) => {
     });
   }
 };
+

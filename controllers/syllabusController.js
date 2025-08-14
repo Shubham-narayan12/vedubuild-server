@@ -3,12 +3,12 @@ import syllabusModel from "../models/syllabusModel.js";
 //UPLOAD SYLLABUS
 export const syllabusUploadController = async (req, res) => {
   try {
-    const { classStd } = req.body;
+    const {  studentClass } = req.body;
     const syllabus = new syllabusModel({
       filename: req.file.originalname,
       file: req.file.buffer,
       contentType: req.file.mimetype,
-      classStd,
+       studentClass,
     });
     await syllabus.save();
     res.status(201).send({
@@ -27,8 +27,8 @@ export const syllabusUploadController = async (req, res) => {
 //DOWNLOLAD SYLLABUS
 export const syllabusDownloadController = async (req, res) => {
   try {
-    const { classStd } = req.query;
-    const syllabus = await syllabusModel.findOne({ classStd });
+    const {  studentClass } = req.query;
+    const syllabus = await syllabusModel.findOne({  studentClass });
 
     if (!syllabus) {
       return res.status(404).send({ message: "PDF not found" });

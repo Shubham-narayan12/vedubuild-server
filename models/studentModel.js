@@ -7,16 +7,16 @@ const studentSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  name: {
+  studentName: {
     type: String,
     required: true,
   },
-  number: {
+  mobileNo: {
     type: Number,
     required: true,
     unique: [true, "Number is already in use"],
   },
-  email: {
+  emailId: {
     type: String,
     required: true,
     unique: [true, "email already in use"],
@@ -25,7 +25,7 @@ const studentSchema = new mongoose.Schema({
     type: String,
     required: [true, "password is required"],
   },
-  addresh: {
+  address: {
     type: String,
     required: true,
   },
@@ -33,30 +33,30 @@ const studentSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  state: {
+  district: {
     type: String,
     required: true,
   },
-  pincode: {
+  pinCode: {
     type: Number,
     required: true,
   },
-  college_name: {
+  schoolCollege: {
     type: String,
     required: true,
   },
-  aadhar_number: {
-    type: Number,
+  aadharNo: {
+    type: String,
     required: true,
     unique: [true, "aadhar already in used"],
   },
-  program: {
+  scholarship : {
     type: String,
     required: true,
   },
-  classStd: {
+   studentClass: {
     type: String,
-    required: true,
+    //required: true,
   },
   otp: {
     type: String,

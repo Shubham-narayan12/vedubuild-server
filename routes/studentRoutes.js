@@ -1,5 +1,5 @@
 import express from "express"
-import { applyController, bulkApplyController, downloadCertificateController, downloadExcelController, requestOtpController, resetPasswordWithOtpController, studentLoginController, studentLogoutController } from "../controllers/studentControllers.js";
+import { applyController, bulkApplyController, downloadCertificateController, downloadExcelController, getAllStudentData, requestOtpController, resetPasswordWithOtpController, studentLoginController, studentLogoutController } from "../controllers/studentControllers.js";
 import { isAuth } from "../middlewares/authMiddleware.js";
 import multer from "multer";
 
@@ -13,6 +13,9 @@ const upload = multer({storage: storage})  ;
 
 //APPLY ROUTES
 router.post("/apply",applyController)
+
+//GET ALL STUDENTS DATA
+router.get("/get-allstudents-data",getAllStudentData)
 
 //BULK APPLY 
 router.post("/bulk-apply", upload.single("file"),bulkApplyController)

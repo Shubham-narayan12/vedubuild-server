@@ -78,6 +78,17 @@ export const applyController = async (req, res) => {
         message: "emailId already Exist",
       });
     }
+
+    //Checking Existing mobileNo
+    const existingemobileNo= await studentModel.findOne({ mobileNo });
+    if (existingemobileNo) {
+      return res.status(500).send({
+        success: false,
+        message: "mobileNo already Exist",
+      });
+    }
+
+
     // Read default certificate PDF
     const certificatePath = path.join(
       process.cwd(),
@@ -125,6 +136,23 @@ export const applyController = async (req, res) => {
   }
 };
 
+//GET ALL STUDENTS DATA
+export const getAllStudentData = async (req, res) => {
+  try {
+    const students = await studentModel.find({});
+    res.status(200).send({
+      success: true,
+      message: "Fetched all students data.",
+      students,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      success: false,
+      message: "Error in GET STUDENTS API",
+    });
+  }
+};
 //BULK APPLY
 export const bulkApplyController = async (req, res) => {
   try {
@@ -457,4 +485,3 @@ export const downloadCertificateController = async (req, res) => {
     });
   }
 };
-

@@ -2,6 +2,7 @@ import {
   emailOtpVerification,
   phoneOtpVerification,
 } from "../models/otpModel.js";
+import studentModel from "../models/studentModel.js";
 
 import { sendEmail } from "../utils/sendemail.js";
 import { sendSms } from "../utils/sendsms.js";
@@ -15,15 +16,24 @@ function generateOTP() {
 export const requestEmailOtp = async (req, res) => {
   try {
     const { emailId } = req.body;
-    if (!emailId)
+    if (!emailId) {
       return res
         .status(400)
         .json({ success: false, message: "Email required" });
+    }
+    //Checking Existing emailIdid
+    const existingemailId = await studentModel.findOne({ emailId });
+    if (existingemailId) {
+      return res.status(409).send({
+        success: false,
+        message: "emailId already Exist",
+      });
+    }
 
     const emailOtp = generateOTP();
 
     // Upsert OTP entry
-    let otpEntry = await emailOtpVerification.findOne({ emailId}); ////email otp
+    let otpEntry = await emailOtpVerification.findOne({ emailId }); ////email otp
     if (otpEntry) {
       otpEntry.emailOtp = emailOtp;
       otpEntry.emailVerified = false;
@@ -42,12 +52,10 @@ export const requestEmailOtp = async (req, res) => {
       await otpEntry.save();
     }
 
-    await sendEmail(
-      emailId,
-      "Verify Email OTP",
-      "otpEmail",
-      { otp: emailOtp, expiry: 5 } 
-    );
+    await sendEmail(emailId, "Verify Email OTP", "otpEmail", {
+      otp: emailOtp,
+      expiry: 5,
+    });
 
     res.json({ success: true, message: "Email OTP sent" });
   } catch (error) {
@@ -61,10 +69,19 @@ export const requestEmailOtp = async (req, res) => {
 export const requestPhoneOtp = async (req, res) => {
   try {
     const { mobileNo } = req.body;
-    if (!mobileNo)
+    if (!mobileNo) {
       return res
         .status(400)
         .json({ success: false, message: "Phone required" });
+    }
+    //Checking Existing mobileNo
+        const existingemobileNo= await studentModel.findOne({ mobileNo });
+        if (existingemobileNo) {
+          return res.status(500).send({
+            success: false,
+            message: "mobileNo already Exist",
+          });
+        }
 
     const phoneOtp = generateOTP();
 
@@ -145,7 +162,7 @@ export const verifyPhoneController = async (req, res) => {
       .status(400)
       .json({ success: false, message: "Phone and OTP required" });
 
-  const otpEntry = await phoneOtpVerification.findOne({mobileNo });
+  const otpEntry = await phoneOtpVerification.findOne({ mobileNo });
   if (!otpEntry)
     return res
       .status(404)

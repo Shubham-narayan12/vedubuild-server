@@ -4,7 +4,11 @@ const syllabusSchema = new mongoose.Schema({
   filename: { type: String, required: true },
   file: { type: Buffer, required: true },
   contentType: { type: String, required: true },
-  classStd:{
+  studentClass:{
+    type:String,
+    required : true
+  },
+  scholarship:{
     type:String,
     required : true
   }

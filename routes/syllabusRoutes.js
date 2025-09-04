@@ -1,7 +1,7 @@
 import express from "express"
 import { isAuth } from "../middlewares/authMiddleware.js";
 import multer from "multer";
-import { syllabusDownloadController, syllabusUploadController } from "../controllers/syllabusController.js";
+import { getAllSyllabus, syllabusDownloadController, syllabusUploadController } from "../controllers/syllabusController.js";
 
 
 
@@ -14,10 +14,13 @@ const upload = multer({ storage });
 
 
 //UPLOAD SYLLABUS
-router.post("/upload",upload.single("file"),syllabusUploadController)
+router.post("/upload",upload.single("file"),syllabusUploadController);
 
 //DOWNLOAD SYLLABUS
-router.get("/download",syllabusDownloadController)
+router.get("/download",syllabusDownloadController);
+
+//GET ALL SYLLABUS 
+router.get("/getAllSyllabus",getAllSyllabus);
 
 
 

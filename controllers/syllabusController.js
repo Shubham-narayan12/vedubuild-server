@@ -3,12 +3,13 @@ import syllabusModel from "../models/syllabusModel.js";
 //UPLOAD SYLLABUS
 export const syllabusUploadController = async (req, res) => {
   try {
-    const {  studentClass } = req.body;
+    const {  studentClass,scholarship } = req.body;
     const syllabus = new syllabusModel({
       filename: req.file.originalname,
       file: req.file.buffer,
       contentType: req.file.mimetype,
        studentClass,
+       scholarship,
     });
     await syllabus.save();
     res.status(201).send({
@@ -45,6 +46,24 @@ export const syllabusDownloadController = async (req, res) => {
     res.status(500).send({
       success: false,
       message: "Error in SYLLABUS DOWNLOAD API",
+    });
+  }
+};
+
+//GET ALL SYLLABUS
+export const getAllSyllabus =async(req, res) =>{
+  try{
+   const syllabuses = await syllabusModel.find({});
+   res.status(200).send({
+      success: true,
+      message: "Fetched all Syllabus.",
+      syllabuses,
+    });
+  }catch(error){
+  console.log(error);
+    res.status(500).send({
+      success: false,
+      message: "Error in GET SYLLABUS API",
     });
   }
 };

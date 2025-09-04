@@ -4,6 +4,8 @@ import ExcelJS from "exceljs";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
+import bcrypt from "bcryptjs";
+import { sendEmail } from "../utils/sendemail.js";
 
 // SET PATH
 const __filename = fileURLToPath(import.meta.url);
@@ -13,13 +15,17 @@ const __dirname = path.dirname(__filename);
 export const applyController = async (req, res) => {
   try {
     //GENERATE RANDOM ID
-    const generateAppID = () => {
+    const generateAppID = (scholarship) => {
       const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-      let id = "";
+      let randomPart = "";
       for (let i = 0; i < 6; i++) {
-        id += chars.charAt(Math.floor(Math.random() * chars.length));
+        randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
       }
-      return id;
+
+      const cleanScholarship = scholarship
+        .replace(/[^a-zA-Z0-9]/g, "")
+        .toUpperCase();
+      return `VEDU/${cleanScholarship}/${randomPart}`;
     };
     //GENERATE RANDOM PASSWORD
     const generatePassword = () => {
@@ -44,10 +50,11 @@ export const applyController = async (req, res) => {
       aadharNo,
       scholarship,
       studentClass,
+      combination,
     } = req.body;
 
     const password = generatePassword();
-    const aplication_id = generateAppID();
+    const aplication_id = generateAppID(scholarship);
 
     //validation
     if (
@@ -80,14 +87,13 @@ export const applyController = async (req, res) => {
     }
 
     //Checking Existing mobileNo
-    const existingemobileNo= await studentModel.findOne({ mobileNo });
+    const existingemobileNo = await studentModel.findOne({ mobileNo });
     if (existingemobileNo) {
       return res.status(500).send({
         success: false,
         message: "mobileNo already Exist",
       });
     }
-
 
     // Read default certificate PDF
     const certificatePath = path.join(
@@ -97,8 +103,18 @@ export const applyController = async (req, res) => {
     );
     const certificateBuffer = fs.readFileSync(certificatePath);
 
-    //save krne se phele password bhejna hain
-    console.log(`your emailId:${emailId} and password:${password}`);
+    //save krne se phele password bhejna hain through EMAIL
+    await sendEmail(
+      emailId, // recipient
+      "Your Vedubuild Application Details", // subject
+      "studentDetails", // template file (studentDetails.hbs)
+      {
+        name: studentName,
+        applicationId: aplication_id,
+        email: emailId,
+        password: password,
+      }
+    );
 
     const student = await studentModel.create({
       aplication_id,
@@ -114,6 +130,7 @@ export const applyController = async (req, res) => {
       aadharNo,
       scholarship,
       studentClass,
+      combination,
       certificate: {
         file: certificateBuffer,
         contentType: "application/pdf",
@@ -153,7 +170,8 @@ export const getAllStudentData = async (req, res) => {
     });
   }
 };
-//BULK APPLY
+
+// BULK APPLY
 export const bulkApplyController = async (req, res) => {
   try {
     if (!req.file) {
@@ -166,80 +184,118 @@ export const bulkApplyController = async (req, res) => {
     const worksheet = workbook.worksheets[0];
     const rows = [];
     const headerRow = worksheet.getRow(1);
-    const headers = headerRow.values
-      .slice(1)
-      .map((h) => (h || "").toString().trim());
+
+    // ✅ Header cleanup (trim + lowercase + underscores)
+    const headers = headerRow.values.slice(1).map((h) =>
+      (h || "")
+        .toString()
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "_")
+        .replace(/[^a-z0-9_]/g, "")
+    );
 
     worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
       if (rowNumber === 1) return;
       const rowVals = row.values.slice(1);
       const obj = {};
       headers.forEach((h, idx) => {
-        const key = h
-          .toLowerCase()
-          .replace(/\s+/g, "_")
-          .replace(/[^a-z0-9_]/g, "");
-        obj[key] = rowVals[idx] !== undefined ? rowVals[idx] : null;
+        obj[h] = rowVals[idx] !== undefined ? rowVals[idx] : null;
       });
       rows.push(obj);
     });
 
-    const generateAppID = () => {
+    // GENERATE RANDOM ID
+    const generateAppID = (scholarship) => {
       const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-      let id = "";
+      let randomPart = "";
       for (let i = 0; i < 6; i++) {
-        id += chars.charAt(Math.floor(Math.random() * chars.length));
+        randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
       }
-      return id;
+
+      const cleanScholarship = (scholarship || "GENERIC")
+        .toString()
+        .replace(/[^a-zA-Z0-9]/g, "")
+        .toUpperCase();
+
+      return `VEDU/${cleanScholarship}/${randomPart}`;
     };
 
-    const studentsData = rows.map((r) => ({
-      aplication_id: generateAppID(),
-      studentName: r.studentName ?? "",
-      mobileNo: r.mobileNo
-        ? Number(r.mobileNo)
-        : r.mobile
-        ? Number(r.mobile)
-        : null,
-      emailId: r.emailId ?? "",
-      address: r.address ?? r.address ?? r.residence ?? "",
-      city: r.city ?? "",
-      district: r.district ?? "",
-      pinCode: r.pinCode ? Number(r.pinCode) : null,
-      schoolCollege: r.schoolCollege ?? r.college ?? "",
-      aadharNo: r.aadharNo
-        ? Number(r.aadharNo)
-        : r.aadhar
-        ? Number(r.aadhar)
-        : null,
-      scholarship: r.scholarship ?? r.course ?? "",
-      studentClass: r.studentClass ?? r.studentClass ?? r.standard ?? "",
-    }));
+    // ✅ Transform Data (ab headers ke normalized keys use karenge)
+    let studentsData = await Promise.all(
+      rows.map(async (r) => {
+        const scholarship = r.scholarship ?? r.course ?? "";
 
-    const filtered = studentsData.filter(
-      (s) => s.aplication_id && s.studentName && s.mobileNo && s.emailId
+        const rawPassword = r.mobileno
+          ? String(r.mobileno)
+          : r.mobile
+          ? String(r.mobile)
+          : "123456";
+
+        const hashedPassword = await bcrypt.hash(rawPassword, 10);
+
+        return {
+          aplication_id: generateAppID(scholarship),
+          studentName: r.studentname ?? r.name ?? "",
+          mobileNo: r.mobileno ? Number(r.mobileno) : null,
+          emailId: r.emailid ?? "",
+          password: hashedPassword,
+          address: r.address ?? r.residence ?? "",
+          city: r.city ?? "",
+          district: r.district ?? "",
+          pinCode: r.pincode ? Number(r.pincode) : null,
+          schoolCollege: r.schoolcollege ?? r.college ?? "",
+          aadharNo: r.aadharno ? String(r.aadharno) : null,
+          scholarship,
+          studentClass: r.studentclass ?? r.standard ?? "",
+          combination: r.combination ?? "",
+        };
+      })
     );
-    const result = await studentModel.insertMany(filtered, { ordered: false });
 
-    return res.status(200).json({
-      message: "Upload processed",
-      totalRows: rows.length,
-      insertedCount: result.length,
-      skippedCount: filtered.length - result.length,
-    });
-  } catch (error) {
-    if (error && error.writeErrors) {
-      const inserted = error.result?.nInserted ?? 0;
-      return res.status(200).json({
-        message: "Upload done with some duplicates/errors skipped",
-        insertedCount: inserted,
-        skippedCount: filtered
-          ? filtered.length - inserted
-          : error.writeErrors.length,
-        error: "Some rows skipped (duplicates or validation errors)",
+    // ✅ Filter required fields
+    studentsData = studentsData.filter(
+      (s) =>
+        s.aplication_id &&
+        s.studentName &&
+        s.mobileNo &&
+        s.emailId &&
+        s.password &&
+        s.address &&
+        s.city &&
+        s.district &&
+        s.pinCode &&
+        s.schoolCollege &&
+        s.aadharNo &&
+        s.scholarship
+    );
+
+    // ✅ Insert into DB
+    let result;
+    try {
+      result = await studentModel.insertMany(studentsData, {
+        ordered: false,
       });
+    } catch (error) {
+      if (error && error.writeErrors) {
+        const inserted = error.result?.nInserted ?? 0;
+        return res.status(200).json({
+          message: "Upload done with some duplicates/errors skipped",
+          totalRows: rows.length,
+          insertedCount: inserted,
+          skippedCount: studentsData.length - inserted,
+        });
+      }
+      throw error;
     }
 
+    return res.status(200).json({
+      message: "Upload processed successfully",
+      totalRows: rows.length,
+      insertedCount: result.length,
+      skippedCount: studentsData.length - result.length,
+    });
+  } catch (error) {
     console.error("UploadStudentsExcel error:", error);
     return res.status(500).json({
       message: "Server error processing file",
@@ -266,6 +322,7 @@ export const downloadExcelController = async (req, res) => {
         aadharNo: 1,
         scholarship: 1,
         studentClass: 1,
+        combination: 1,
         _id: 0,
       }
     );
@@ -277,16 +334,17 @@ export const downloadExcelController = async (req, res) => {
     worksheet.columns = [
       { header: "Application ID", key: "aplication_id", width: 20 },
       { header: "studentName", key: "studentName", width: 20 },
-      { header: "Mobile Number", key: "mobileNo", width: 15 },
+      { header: "mobileNo", key: "mobileNo", width: 15 },
       { header: "emailId", key: "emailId", width: 25 },
-      { header: "Address", key: "address", width: 30 },
-      { header: "City", key: "city", width: 15 },
+      { header: "address", key: "address", width: 30 },
+      { header: "city", key: "city", width: 15 },
       { header: "district", key: "district", width: 15 },
       { header: "pinCode", key: "pinCode", width: 10 },
-      { header: "College Name", key: "schoolCollege", width: 25 },
-      { header: "Aadhar Number", key: "aadharNo", width: 20 },
+      { header: "schoolCollege", key: "schoolCollege", width: 25 },
+      { header: "aadharNo", key: "aadharNo", width: 20 },
       { header: "scholarship", key: "scholarship", width: 15 },
-      { header: " studentClass", key: " studentClass", width: 15 },
+      { header: "studentClass", key: "studentClass", width: 15 },
+      { header: "combination", key: "combination", width: 15 },
     ];
 
     // Add rows
@@ -354,6 +412,10 @@ export const studentLoginController = async (req, res) => {
       .send({
         success: true,
         message: "LOGIN SUCCESSFUL",
+        token,
+        student: {
+          emailId: user.emailId, // 👈 frontend ko email bhi bhej
+        },
       });
   } catch (error) {
     console.log(error);
@@ -409,10 +471,21 @@ export const requestOtpController = async (req, res) => {
     user.otpExpire = Date.now() + 2 * 60 * 1000; // 2 min
     await user.save();
     console.log(`OTP FOR PASSWORD ${emailId} = ${otp} `),
-      res.status(200).send({
-        success: true,
-        message: "OTP sent to emailId",
-      });
+      await sendEmail(
+        emailId, // recipient
+        "Your OTP for Reset Password", // subject
+        "resetPassword", // template file (resetPassword.hbs)
+        {
+          name: user.studentName,
+          email: emailId,
+          otp: otp,
+          expiry: 2,
+        }
+      );
+    res.status(200).send({
+      success: true,
+      message: "OTP sent to emailId",
+    });
   } catch (error) {
     console.log(error);
     res.status(500).send({ success: false, message: "Error sending OTP" });
@@ -483,5 +556,28 @@ export const downloadCertificateController = async (req, res) => {
       success: false,
       message: "Error in certificate download API",
     });
+  }
+};
+
+//GET LOGGED-IN STUDENT PROFILE
+export const getStudentProfileController = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res
+        .status(404)
+        .send({ success: false, message: "Student not found" });
+    }
+
+    const student = await studentModel
+      .findById(req.user._id)
+      .select("-password -otp -otpExpire");
+
+    res.status(200).send({
+      success: true,
+      student,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({ success: false, message: "Error fetching profile" });
   }
 };

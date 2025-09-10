@@ -60,7 +60,11 @@ const studentSchema = new mongoose.Schema({
   },
   combination:{
      type : String,
-     default:null,
+     default:"N/A",
+  },
+   profileImage: {
+    type: Buffer,   // 👈 Binary data
+    contentType: String, // 👈 mime type (jpg/png)
   },
   otp: {
     type: String,

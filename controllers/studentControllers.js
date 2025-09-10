@@ -153,6 +153,55 @@ export const applyController = async (req, res) => {
   }
 };
 
+//UPLOAD STUDENT PROFILE PIC
+export const uploadStudentImage = async (req, res) => {
+  try {
+    const { emailId } = req.body; // token se student ka id mil jayega
+    const student = await studentModel.findOne({emailId});
+
+    if (!student) {
+      return res
+        .status(404)
+        .send({ success: false, message: "Student not found" });
+    }
+
+    // file save
+    student.profileImage = req.file.buffer;
+    student.profileImage.contentType = req.file.mimetype;
+
+    await student.save();
+
+    res.status(200).send({
+      success: true,
+      message: "Profile image uploaded successfully",
+      imageUrl: `/api/vedubuildApply/image/${student.emailId}`, // 👈 frontend ke liye URL
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ success: false, message: "Error uploading image" });
+  }
+};
+
+
+// GET student profile image
+export const getStudentImage = async (req, res) => {
+  try {
+    const { emailId } = req.params;
+    const student = await studentModel.findOne({ emailId });
+
+    if (!student || !student.profileImage || !student.profileImage.data) {
+      return res.status(404).send("No image found");
+    }
+
+    res.set("Content-Type", student.profileImage.contentType);
+    res.send(student.profileImage.data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error fetching image");
+  }
+};
+
+
 //GET ALL STUDENTS DATA
 export const getAllStudentData = async (req, res) => {
   try {
@@ -414,7 +463,20 @@ export const studentLoginController = async (req, res) => {
         message: "LOGIN SUCCESSFUL",
         token,
         student: {
-          emailId: user.emailId, // 👈 frontend ko email bhi bhej
+          application_id: user.aplication_id,
+          studentName: user.studentName,
+          mobileNo: user.mobileNo,
+          emailId: user.emailId,
+          address: user.address,
+          city: user.city,
+          district: user.district,
+          pinCode: user.pinCode,
+          schoolCollege: user.schoolCollege,
+          scholarship: user.scholarship,
+          studentClass: user.studentClass,
+          combination: user.combination,
+          profileImage : user.profileImage,
+          // password ko mat bhejna 🚫
         },
       });
   } catch (error) {
@@ -562,14 +624,10 @@ export const downloadCertificateController = async (req, res) => {
 //GET LOGGED-IN STUDENT PROFILE
 export const getStudentProfileController = async (req, res) => {
   try {
-    if (!req.user) {
-      return res
-        .status(404)
-        .send({ success: false, message: "Student not found" });
-    }
+    const { emailId } = req.body;
 
     const student = await studentModel
-      .findById(req.user._id)
+      .findOne(emailId)
       .select("-password -otp -otpExpire");
 
     res.status(200).send({

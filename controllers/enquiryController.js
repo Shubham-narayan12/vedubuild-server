@@ -190,3 +190,26 @@ export const downloadEnquiryExcelController = async (req, res) => {
     });
   }
 };
+
+
+//TOTAL NUMBER OF ENQUIRY
+export const totalNumberOfEnquiry = async(req ,res) =>{
+  try{
+    // count total enquiries
+    const total = await enquiryModel.countDocuments();
+
+    res.status(200).send({
+      success: true,
+      message: "Total enquiries fetched successfully",
+      totalEnquiries: total,
+    });
+
+  }catch(error){
+    console.error(error);
+    res.status(500).send({
+      success: false,
+      message: "Error while fetching enquiries count",
+    });
+
+  }
+}

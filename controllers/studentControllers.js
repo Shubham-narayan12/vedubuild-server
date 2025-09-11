@@ -621,21 +621,25 @@ export const downloadCertificateController = async (req, res) => {
   }
 };
 
-//GET LOGGED-IN STUDENT PROFILE
-export const getStudentProfileController = async (req, res) => {
-  try {
-    const { emailId } = req.body;
 
-    const student = await studentModel
-      .findOne(emailId)
-      .select("-password -otp -otpExpire");
 
-    res.status(200).send({
-      success: true,
-      student,
+//TOTAL NUMBER OF STUDENTS
+export const totalNumberOfstudent = async(req,res)=>{
+  try{
+    // count total enquiries
+        const total = await studentModel.countDocuments();
+    
+        res.status(200).send({
+          success: true,
+          message: "Total enquiries fetched successfully",
+          totalStudents: total,
+        });
+
+  }catch(error){
+     console.error(error);
+    res.status(500).send({
+      success: false,
+      message: "Error while fetching students count",
     });
-  } catch (error) {
-    console.log(error);
-    res.status(500).send({ success: false, message: "Error fetching profile" });
   }
-};
+}

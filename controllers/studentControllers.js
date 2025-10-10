@@ -11,10 +11,10 @@ import { sendEmail } from "../utils/sendemail.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-//APPLY NOW
+// APPLY NOW
 export const applyController = async (req, res) => {
   try {
-    //GENERATE RANDOM ID
+    // GENERATE RANDOM ID
     const generateAppID = (scholarship) => {
       const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
       let randomPart = "";
@@ -27,16 +27,6 @@ export const applyController = async (req, res) => {
         .toUpperCase();
       return `VEDU/${cleanScholarship}/${randomPart}`;
     };
-    //GENERATE RANDOM PASSWORD
-    const generatePassword = () => {
-      const chars =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-      let id = "";
-      for (let i = 0; i < 8; i++) {
-        id += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      return id;
-    };
 
     const {
       studentName,
@@ -47,55 +37,49 @@ export const applyController = async (req, res) => {
       district,
       pinCode,
       schoolCollege,
+      boardName,
       aadharNo,
       scholarship,
       studentClass,
       combination,
     } = req.body;
 
-    const password = generatePassword();
     const aplication_id = generateAppID(scholarship);
 
-    //validation
+    // VALIDATION
     if (
       !aplication_id ||
       !studentName ||
       !mobileNo ||
       !emailId ||
-      !password ||
       !address ||
       !city ||
       !district ||
       !pinCode ||
       !schoolCollege ||
+      !boardName ||
       !aadharNo ||
       !scholarship ||
       !studentClass
     ) {
-      return res.status(500).send({
+      return res.status(400).json({
         success: false,
-        message: "please provide all details",
-      });
-    }
-    //Checking Existing emailIdid
-    const existingemailId = await studentModel.findOne({ emailId });
-    if (existingemailId) {
-      return res.status(500).send({
-        success: false,
-        message: "emailId already Exist",
+        message: "Please provide all details",
       });
     }
 
-    //Checking Existing mobileNo
-    const existingemobileNo = await studentModel.findOne({ mobileNo });
-    if (existingemobileNo) {
-      return res.status(500).send({
+    // CHECK EXISTING EMAIL OR MOBILE
+    const existingStudent = await studentModel.findOne({
+      $or: [{ emailId }, { mobileNo }],
+    });
+    if (existingStudent) {
+      return res.status(400).json({
         success: false,
-        message: "mobileNo already Exist",
+        message: "Student with same mobile or email already exists",
       });
     }
 
-    // Read default certificate PDF
+    // READ DEFAULT CERTIFICATE PDF
     const certificatePath = path.join(
       process.cwd(),
       "public",
@@ -103,30 +87,18 @@ export const applyController = async (req, res) => {
     );
     const certificateBuffer = fs.readFileSync(certificatePath);
 
-    //save krne se phele password bhejna hain through EMAIL
-    await sendEmail(
-      emailId, // recipient
-      "Your Vedubuild Application Details", // subject
-      "studentDetails", // template file (studentDetails.hbs)
-      {
-        name: studentName,
-        applicationId: aplication_id,
-        email: emailId,
-        password: password,
-      }
-    );
-
+    // CREATE STUDENT
     const student = await studentModel.create({
       aplication_id,
       studentName,
       mobileNo,
       emailId,
-      password,
       address,
       city,
       district,
       pinCode,
       schoolCollege,
+      boardName, // ✅ new field
       aadharNo,
       scholarship,
       studentClass,
@@ -137,18 +109,94 @@ export const applyController = async (req, res) => {
         filename: "certificate.pdf",
       },
       canDownloadCertificate: false,
+      // paymentStatus default "Pending", no need to set
     });
 
-    res.status(201).send({
+    res.status(201).json({
       success: true,
-      message: "apply successfull",
+      message: "Application successful",
       student,
     });
   } catch (error) {
-    console.log(error);
-    res.status(500).send({
+    console.error(error);
+    res.status(500).json({
       success: false,
       message: "Error in apply API",
+    });
+  }
+};
+
+//SEND STUDENT CREDENTIALS
+export const sendStudentCredentials = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    if (!studentId) {
+      return res.status(400).json({
+        success: false,
+        message: "studentId required",
+      });
+    }
+
+    const student = await studentModel.findById(studentId);
+    if (!student) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Student not found" });
+    }
+
+    if (!student.emailId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Student email not available" });
+    }
+
+    // ✅ Already sent check
+    if (student.credentialsSentAt) {
+      return res.status(400).json({
+        success: false,
+        message: "Credentials already sent earlier",
+      });
+    }
+
+    // 🔑 Generate new password
+    const generatePassword = () => {
+      const chars =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+      let id = "";
+      for (let i = 0; i < 8; i++) {
+        id += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return id;
+    };
+
+    const password = generatePassword();
+
+    student.password = password;
+    student.credentialsSentAt = new Date(); // ✅ Save timestamp
+    await student.save();
+
+    // 📧 Send email
+    await sendEmail(
+      student.emailId,
+      "Your Vedubuild Application Details",
+      "studentDetails",
+      {
+        name: student.studentName,
+        applicationId: student.aplication_id,
+        email: student.emailId,
+        password,
+      }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Credentials generated, saved & email sent successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Error in Send Credentials API",
     });
   }
 };
@@ -157,7 +205,7 @@ export const applyController = async (req, res) => {
 export const uploadStudentImage = async (req, res) => {
   try {
     const { emailId } = req.body; // token se student ka id mil jayega
-    const student = await studentModel.findOne({emailId});
+    const student = await studentModel.findOne({ emailId });
 
     if (!student) {
       return res
@@ -182,7 +230,6 @@ export const uploadStudentImage = async (req, res) => {
   }
 };
 
-
 // GET student profile image
 export const getStudentImage = async (req, res) => {
   try {
@@ -200,7 +247,6 @@ export const getStudentImage = async (req, res) => {
     res.status(500).send("Error fetching image");
   }
 };
-
 
 //GET ALL STUDENTS DATA
 export const getAllStudentData = async (req, res) => {
@@ -368,38 +414,41 @@ export const downloadExcelController = async (req, res) => {
         district: 1,
         pinCode: 1,
         schoolCollege: 1,
+        boardName: 1, // ✅ new field
         aadharNo: 1,
         scholarship: 1,
         studentClass: 1,
         combination: 1,
+        paymentStatus: 1, // ✅ new field
         _id: 0,
       }
     );
-    // Create a new workbook and worksheet
+
+    // Create workbook and worksheet
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Students");
 
-    //add columns in excel file
+    // Define columns
     worksheet.columns = [
       { header: "Application ID", key: "aplication_id", width: 20 },
-      { header: "studentName", key: "studentName", width: 20 },
-      { header: "mobileNo", key: "mobileNo", width: 15 },
-      { header: "emailId", key: "emailId", width: 25 },
-      { header: "address", key: "address", width: 30 },
-      { header: "city", key: "city", width: 15 },
-      { header: "district", key: "district", width: 15 },
-      { header: "pinCode", key: "pinCode", width: 10 },
-      { header: "schoolCollege", key: "schoolCollege", width: 25 },
-      { header: "aadharNo", key: "aadharNo", width: 20 },
-      { header: "scholarship", key: "scholarship", width: 15 },
-      { header: "studentClass", key: "studentClass", width: 15 },
-      { header: "combination", key: "combination", width: 15 },
+      { header: "Student Name", key: "studentName", width: 25 },
+      { header: "Mobile No", key: "mobileNo", width: 15 },
+      { header: "Email ID", key: "emailId", width: 25 },
+      { header: "Address", key: "address", width: 30 },
+      { header: "City", key: "city", width: 15 },
+      { header: "District", key: "district", width: 15 },
+      { header: "Pin Code", key: "pinCode", width: 10 },
+      { header: "School/College", key: "schoolCollege", width: 25 },
+      { header: "Board Name", key: "boardName", width: 15 }, // ✅ new
+      { header: "Aadhar No", key: "aadharNo", width: 20 },
+      { header: "Scholarship", key: "scholarship", width: 15 },
+      { header: "Class", key: "studentClass", width: 15 },
+      { header: "Combination", key: "combination", width: 15 },
+      { header: "Payment Status", key: "paymentStatus", width: 15 }, // ✅ new
     ];
 
     // Add rows
-    students.forEach((student) => {
-      worksheet.addRow(student);
-    });
+    students.forEach((student) => worksheet.addRow(student));
 
     // Set response headers
     res.setHeader(
@@ -408,59 +457,64 @@ export const downloadExcelController = async (req, res) => {
     );
     res.setHeader("Content-Disposition", "attachment; filename=students.xlsx");
 
-    // Write workbook to response stream
+    // Write workbook to response
     await workbook.xlsx.write(res);
     res.status(200).end();
   } catch (error) {
-    console.log(error);
-    res.status(500).send({
+    console.error("Error generating Excel:", error);
+    res.status(500).json({
       success: false,
       message: "Error in GENERATE EXCEL API",
     });
   }
 };
 
-//STUDENT LOGIN
+// STUDENT LOGIN
 export const studentLoginController = async (req, res) => {
   try {
     const { emailId, password } = req.body;
+
+    // ✅ Validation
     if (!emailId || !password) {
-      return res.status(500).send({
+      return res.status(400).json({
         success: false,
-        message: "please provide username and password",
-      });
-    }
-    const user = await studentModel.findOne({ emailId });
-    if (!user) {
-      return res.status(404).send({
-        success: false,
-        message: "User Not found",
+        message: "Please provide email and password",
       });
     }
 
-    //CHECK PASSWORD
+    // ✅ Find user
+    const user = await studentModel.findOne({ emailId });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // ✅ Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(500).send({
+      return res.status(401).json({
         success: false,
         message: "Invalid password",
       });
     }
 
-    //token
+    // ✅ Generate token
     const token = user.generateToken();
 
+    // ✅ Send cookie + response
     res
       .status(200)
       .cookie("token", token, {
         httpOnly: true,
-        secure: true, // only send over HTTPS
-        sameSite: "None", // important for cross-origin (frontend/backend different domain)
-        expires: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+        secure: true, // HTTPS only
+        sameSite: "None", // cross-origin
+        expires: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), // 10 days
       })
-      .send({
+      .json({
         success: true,
-        message: "LOGIN SUCCESSFUL",
+        message: "Login successful",
         token,
         student: {
           application_id: user.aplication_id,
@@ -472,18 +526,20 @@ export const studentLoginController = async (req, res) => {
           district: user.district,
           pinCode: user.pinCode,
           schoolCollege: user.schoolCollege,
+          boardName: user.boardName, // ✅ new field
           scholarship: user.scholarship,
           studentClass: user.studentClass,
           combination: user.combination,
-          profileImage : user.profileImage,
-          // password ko mat bhejna 🚫
+          paymentStatus: user.paymentStatus, // ✅ new field
+          profileImage: user.profileImage,
+          // password is NOT sent 🚫
         },
       });
   } catch (error) {
-    console.log(error);
-    res.status(500).send({
+    console.error("Error in LOGIN API:", error);
+    res.status(500).json({
       success: false,
-      message: "Error In LOGIN API",
+      message: "Error in login API",
     });
   }
 };
@@ -621,25 +677,55 @@ export const downloadCertificateController = async (req, res) => {
   }
 };
 
-
-
 //TOTAL NUMBER OF STUDENTS
-export const totalNumberOfstudent = async(req,res)=>{
-  try{
+export const totalNumberOfstudent = async (req, res) => {
+  try {
     // count total enquiries
-        const total = await studentModel.countDocuments();
-    
-        res.status(200).send({
-          success: true,
-          message: "Total enquiries fetched successfully",
-          totalStudents: total,
-        });
+    const total = await studentModel.countDocuments();
 
-  }catch(error){
-     console.error(error);
+    res.status(200).send({
+      success: true,
+      message: "Total enquiries fetched successfully",
+      totalStudents: total,
+    });
+  } catch (error) {
+    console.error(error);
     res.status(500).send({
       success: false,
       message: "Error while fetching students count",
     });
   }
-}
+};
+
+//UPDATE PAYMENT STATUS
+export const updatePaymentStatusController = async (req, res) => {
+  try {
+    const student = await studentModel.findById(req.params.id);
+    if (!student) {
+      return res.status(404).send({ message: "Student not found" });
+    }
+    // Check current payment status
+    if (student.paymentStatus === "Pending") {
+      student.paymentStatus = "Success";
+      await student.save();
+
+      return res.status(200).json({
+        success: true,
+        message: "Payment status updated to success",
+        student,
+      });
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: `Payment status is already '${student.paymentStatus}'`,
+      });
+    }
+  } catch (error) {
+    console.error("Error updating payment status:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};

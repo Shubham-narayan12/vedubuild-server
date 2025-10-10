@@ -1,0 +1,17 @@
+{
+  "width": 1000,
+  "height": 700,
+  "image": "../templates/VSTAR_CERTIFICATE.jpg",
+  "dateFormat": "en-GB",
+  "qrSize": 120,
+  "qrPosition": { "top": 550, "left": 800 },
+  "fields": {
+    "studentName": { "x": 400, "y": 180, "fontSize": 18 },
+    "studentClass": { "x": 150, "y": 240, "fontSize": 14 },
+    "schoolCollege": { "x": 350, "y": 240, "fontSize": 14 },
+    "examRank": { "x": 150, "y": 280, "fontSize": 12 },
+    "scholarship": { "x": 150, "y": 320, "fontSize": 14 },
+    "issuedDate": { "x": 100, "y": 620, "fontSize": 12 },
+    "application_id": { "x": 450, "y": 620, "fontSize": 12 }
+  }
+}

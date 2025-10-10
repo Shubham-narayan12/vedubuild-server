@@ -23,7 +23,6 @@ const studentSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: [true, "password is required"],
   },
   address: {
     type: String,
@@ -45,26 +44,32 @@ const studentSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  boardName: { type: String, required: true },
   aadharNo: {
     type: String,
     required: true,
     unique: [true, "aadhar already in used"],
   },
-  scholarship : {
+  scholarship: {
     type: String,
     required: true,
   },
-   studentClass: {
+  studentClass: {
     type: String,
     //required: true,
   },
-  combination:{
-     type : String,
-     default:"N/A",
+  combination: {
+    type: String,
+    default: "N/A",
   },
-   profileImage: {
-    type: Buffer,   // 👈 Binary data
+  profileImage: {
+    type: Buffer, // 👈 Binary data
     contentType: String, // 👈 mime type (jpg/png)
+  },
+  paymentStatus: { type: String, default: "Pending" },
+  credentialsSentAt: {
+    type: Date,
+    default: null,
   },
   otp: {
     type: String,

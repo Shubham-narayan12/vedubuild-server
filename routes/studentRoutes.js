@@ -9,9 +9,11 @@ import {
   
   requestOtpController,
   resetPasswordWithOtpController,
+  sendStudentCredentials,
   studentLoginController,
   studentLogoutController,
   totalNumberOfstudent,
+  updatePaymentStatusController,
   uploadStudentImage,
 } from "../controllers/studentControllers.js";
 import { isAuth } from "../middlewares/authMiddleware.js";
@@ -24,6 +26,12 @@ const upload = multer({ storage: storage });
 
 //APPLY ROUTES
 router.post("/apply", applyController);
+
+//SEND CREDENTIAL TO APPLIED STUDENT THROUGH EMAIL
+router.post("/:studentId/send-credentials",sendStudentCredentials)
+
+//UPDATE STUDENT PAYMENT STATUS
+router.post("/update-payment-status/:id",updatePaymentStatusController)
 
 //GET ALL STUDENTS DATA
 router.get("/get-allstudents-data", getAllStudentData);

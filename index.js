@@ -18,6 +18,8 @@ import enquiryRoutes from "./routes/enquiryRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import syllabusRoutes from "./routes/syllabusRoutes.js"
 import otpVerificationRoutes from "./routes/otpRoutes.js"
+import paymentRoutes from "./routes/paymentRoutes.js"
+import certificateRoutes from "./routes/certificateRoutes.js"
 // Connect to database
 connectDb();
 
@@ -58,6 +60,8 @@ app.use("/api/enquiry", enquiryRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/syllabus", syllabusRoutes);
 app.use("/api/otp",otpVerificationRoutes);
+app.use("/api/payment",paymentRoutes);
+app.use("/api/certificate",certificateRoutes);
 
 // Test Route
 app.get("/", (req, res) => {

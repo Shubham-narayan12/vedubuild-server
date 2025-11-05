@@ -11,15 +11,17 @@ const studentSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  fatherName: {
+    type: String,
+    required: true,
+  },
   mobileNo: {
     type: Number,
     required: true,
-    unique: [true, "Number is already in use"],
   },
   emailId: {
     type: String,
     required: true,
-    unique: [true, "email already in use"],
   },
   password: {
     type: String,
@@ -78,11 +80,6 @@ const studentSchema = new mongoose.Schema({
   otpExpire: {
     type: Date,
     default: null,
-  },
-  certificate: {
-    file: Buffer,
-    contentType: { type: String, default: "application/pdf" },
-    filename: { type: String, default: "certificate.pdf" },
   },
   canDownloadCertificate: {
     type: Boolean,

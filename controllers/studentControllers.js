@@ -30,6 +30,7 @@ export const applyController = async (req, res) => {
 
     const {
       studentName,
+      fatherName,
       mobileNo,
       emailId,
       address,
@@ -50,6 +51,7 @@ export const applyController = async (req, res) => {
     if (
       !aplication_id ||
       !studentName ||
+      !fatherName||
       !mobileNo ||
       !emailId ||
       !address ||
@@ -69,7 +71,7 @@ export const applyController = async (req, res) => {
     }
 
     // CHECK EXISTING EMAIL OR MOBILE
-    const existingStudent = await studentModel.findOne({
+    /*const existingStudent = await studentModel.findOne({
       $or: [{ emailId }, { mobileNo }],
     });
     if (existingStudent) {
@@ -77,20 +79,15 @@ export const applyController = async (req, res) => {
         success: false,
         message: "Student with same mobile or email already exists",
       });
-    }
+    } */
 
-    // READ DEFAULT CERTIFICATE PDF
-    const certificatePath = path.join(
-      process.cwd(),
-      "public",
-      "default-certificate.pdf"
-    );
-    const certificateBuffer = fs.readFileSync(certificatePath);
+    
 
     // CREATE STUDENT
     const student = await studentModel.create({
       aplication_id,
       studentName,
+      fatherName,
       mobileNo,
       emailId,
       address,
@@ -98,18 +95,13 @@ export const applyController = async (req, res) => {
       district,
       pinCode,
       schoolCollege,
-      boardName, // ✅ new field
+      boardName, 
       aadharNo,
       scholarship,
       studentClass,
       combination,
-      certificate: {
-        file: certificateBuffer,
-        contentType: "application/pdf",
-        filename: "certificate.pdf",
-      },
       canDownloadCertificate: false,
-      // paymentStatus default "Pending", no need to set
+      
     });
 
     res.status(201).json({
@@ -407,6 +399,7 @@ export const downloadExcelController = async (req, res) => {
       {
         aplication_id: 1,
         studentName: 1,
+        fatherName: 1,
         mobileNo: 1,
         emailId: 1,
         address: 1,
@@ -414,15 +407,15 @@ export const downloadExcelController = async (req, res) => {
         district: 1,
         pinCode: 1,
         schoolCollege: 1,
-        boardName: 1, // ✅ new field
+        boardName: 1, 
         aadharNo: 1,
         scholarship: 1,
         studentClass: 1,
         combination: 1,
-        paymentStatus: 1, // ✅ new field
+        paymentStatus: 1, 
         _id: 0,
       }
-    );
+    ).lean();
 
     // Create workbook and worksheet
     const workbook = new ExcelJS.Workbook();
@@ -432,7 +425,8 @@ export const downloadExcelController = async (req, res) => {
     worksheet.columns = [
       { header: "Application ID", key: "aplication_id", width: 20 },
       { header: "Student Name", key: "studentName", width: 25 },
-      { header: "Mobile No", key: "mobileNo", width: 15 },
+      { header: "Father Name", key: "fatherName", width: 25 },
+      { header: "Mobile No ", key: "mobileNo", width: 15 },
       { header: "Email ID", key: "emailId", width: 25 },
       { header: "Address", key: "address", width: 30 },
       { header: "City", key: "city", width: 15 },
@@ -448,7 +442,7 @@ export const downloadExcelController = async (req, res) => {
     ];
 
     // Add rows
-    students.forEach((student) => worksheet.addRow(student));
+   students.forEach((student) => worksheet.addRow(student));
 
     // Set response headers
     res.setHeader(
@@ -519,6 +513,7 @@ export const studentLoginController = async (req, res) => {
         student: {
           application_id: user.aplication_id,
           studentName: user.studentName,
+          fatherName:user.fatherName,
           mobileNo: user.mobileNo,
           emailId: user.emailId,
           address: user.address,
@@ -526,7 +521,7 @@ export const studentLoginController = async (req, res) => {
           district: user.district,
           pinCode: user.pinCode,
           schoolCollege: user.schoolCollege,
-          boardName: user.boardName, // ✅ new field
+          boardName: user.boardName,
           scholarship: user.scholarship,
           studentClass: user.studentClass,
           combination: user.combination,

@@ -466,10 +466,10 @@ export const downloadExcelController = async (req, res) => {
 // STUDENT LOGIN
 export const studentLoginController = async (req, res) => {
   try {
-    const { emailId, password } = req.body;
+    const { aplication_id, password } = req.body;
 
     // ✅ Validation
-    if (!emailId || !password) {
+    if (!aplication_id || !password) {
       return res.status(400).json({
         success: false,
         message: "Please provide email and password",
@@ -477,7 +477,7 @@ export const studentLoginController = async (req, res) => {
     }
 
     // ✅ Find user
-    const user = await studentModel.findOne({ emailId });
+    const user = await studentModel.findOne({ aplication_id });
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -525,9 +525,9 @@ export const studentLoginController = async (req, res) => {
           scholarship: user.scholarship,
           studentClass: user.studentClass,
           combination: user.combination,
-          paymentStatus: user.paymentStatus, // ✅ new field
+          paymentStatus: user.paymentStatus,
           profileImage: user.profileImage,
-          // password is NOT sent 🚫
+          
         },
       });
   } catch (error) {
@@ -564,14 +564,14 @@ export const studentLogoutController = async (req, res) => {
 //STUDENT REQUEST FOR OTP FOR PASSWORD RESET
 export const requestOtpController = async (req, res) => {
   try {
-    const { emailId } = req.body;
-    if (!emailId) {
+    const { aplication_id } = req.body;
+    if (!aplication_id) {
       return res
         .status(400)
-        .send({ success: false, message: "emailId is required" });
+        .send({ success: false, message: "Application Id is required" });
     }
 
-    const user = await studentModel.findOne({ emailId });
+    const user = await studentModel.findOne({ aplication_id });
     if (!user) {
       return res
         .status(404)
@@ -583,14 +583,14 @@ export const requestOtpController = async (req, res) => {
     user.otp = otp;
     user.otpExpire = Date.now() + 2 * 60 * 1000; // 2 min
     await user.save();
-    console.log(`OTP FOR PASSWORD ${emailId} = ${otp} `),
+    console.log(`OTP FOR PASSWORD ${aplication_id} = ${otp} `),
       await sendEmail(
-        emailId, // recipient
+        user.emailId, // recipient
         "Your OTP for Reset Password", // subject
         "resetPassword", // template file (resetPassword.hbs)
         {
           name: user.studentName,
-          email: emailId,
+          email: user.emailId,
           otp: otp,
           expiry: 2,
         }
@@ -608,14 +608,14 @@ export const requestOtpController = async (req, res) => {
 // STUDENT RESET PASSWORD WITH OTP
 export const resetPasswordWithOtpController = async (req, res) => {
   try {
-    const { emailId, otp, newPassword } = req.body;
-    if (!emailId || !otp || !newPassword) {
+    const { aplication_id, otp, newPassword } = req.body;
+    if (!aplication_id || !otp || !newPassword) {
       return res
         .status(400)
         .send({ success: false, message: "All fields are required" });
     }
     const user = await studentModel.findOne({
-      emailId,
+      aplication_id,
       otp,
       otpExpire: { $gt: Date.now() }, // OTP not expired
     });

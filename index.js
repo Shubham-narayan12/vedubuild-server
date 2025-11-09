@@ -21,6 +21,7 @@ import otpVerificationRoutes from "./routes/otpRoutes.js"
 import paymentRoutes from "./routes/paymentRoutes.js"
 import certificateRoutes from "./routes/certificateRoutes.js"
 import eventRoutes from "./routes/eventRoutes.js"
+import uploadBannerRouter from "./routes/uploadRoutes.js"
 // Connect to database
 connectDb();
 
@@ -64,6 +65,8 @@ app.use("/api/otp",otpVerificationRoutes);
 app.use("/api/payment",paymentRoutes);
 app.use("/api/certificate",certificateRoutes);
 app.use("/api/events",eventRoutes);
+app.use("/api/banner",uploadBannerRouter);
+
 
 // Test Route
 app.get("/", (req, res) => {

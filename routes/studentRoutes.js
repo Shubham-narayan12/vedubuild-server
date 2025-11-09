@@ -2,6 +2,7 @@ import express from "express";
 import {
   applyController,
   bulkApplyController,
+  deleteStudentController,
   downloadCertificateController,
   downloadExcelController,
   getAllStudentData,
@@ -69,5 +70,8 @@ router.get("/download-certificate", downloadCertificateController);
 
 //TOTAL NUMBER OF STUDENTS
 router.get("/total-students", totalNumberOfstudent);
+
+//DELETE STUDENT BY ID
+router.delete("/:id",deleteStudentController)
 
 export default router;

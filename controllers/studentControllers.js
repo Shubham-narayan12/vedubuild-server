@@ -51,7 +51,7 @@ export const applyController = async (req, res) => {
     if (
       !aplication_id ||
       !studentName ||
-      !fatherName||
+      !fatherName ||
       !mobileNo ||
       !emailId ||
       !address ||
@@ -81,8 +81,6 @@ export const applyController = async (req, res) => {
       });
     } */
 
-    
-
     // CREATE STUDENT
     const student = await studentModel.create({
       aplication_id,
@@ -95,13 +93,12 @@ export const applyController = async (req, res) => {
       district,
       pinCode,
       schoolCollege,
-      boardName, 
+      boardName,
       aadharNo,
       scholarship,
       studentClass,
       combination,
       canDownloadCertificate: false,
-      
     });
 
     res.status(201).json({
@@ -394,28 +391,30 @@ export const bulkApplyController = async (req, res) => {
 //DOWNLOAD-EXCEL
 export const downloadExcelController = async (req, res) => {
   try {
-    const students = await studentModel.find(
-      {},
-      {
-        aplication_id: 1,
-        studentName: 1,
-        fatherName: 1,
-        mobileNo: 1,
-        emailId: 1,
-        address: 1,
-        city: 1,
-        district: 1,
-        pinCode: 1,
-        schoolCollege: 1,
-        boardName: 1, 
-        aadharNo: 1,
-        scholarship: 1,
-        studentClass: 1,
-        combination: 1,
-        paymentStatus: 1, 
-        _id: 0,
-      }
-    ).lean();
+    const students = await studentModel
+      .find(
+        {},
+        {
+          aplication_id: 1,
+          studentName: 1,
+          fatherName: 1,
+          mobileNo: 1,
+          emailId: 1,
+          address: 1,
+          city: 1,
+          district: 1,
+          pinCode: 1,
+          schoolCollege: 1,
+          boardName: 1,
+          aadharNo: 1,
+          scholarship: 1,
+          studentClass: 1,
+          combination: 1,
+          paymentStatus: 1,
+          _id: 0,
+        }
+      )
+      .lean();
 
     // Create workbook and worksheet
     const workbook = new ExcelJS.Workbook();
@@ -442,7 +441,7 @@ export const downloadExcelController = async (req, res) => {
     ];
 
     // Add rows
-   students.forEach((student) => worksheet.addRow(student));
+    students.forEach((student) => worksheet.addRow(student));
 
     // Set response headers
     res.setHeader(
@@ -513,7 +512,7 @@ export const studentLoginController = async (req, res) => {
         student: {
           application_id: user.aplication_id,
           studentName: user.studentName,
-          fatherName:user.fatherName,
+          fatherName: user.fatherName,
           mobileNo: user.mobileNo,
           emailId: user.emailId,
           address: user.address,
@@ -527,7 +526,6 @@ export const studentLoginController = async (req, res) => {
           combination: user.combination,
           paymentStatus: user.paymentStatus,
           profileImage: user.profileImage,
-          
         },
       });
   } catch (error) {
@@ -721,6 +719,28 @@ export const updatePaymentStatusController = async (req, res) => {
       success: false,
       message: "Internal Server Error",
       error: error.message,
+    });
+  }
+};
+
+//DELETE STUDENT BY ID
+export const deleteStudentController = async (req ,res) => {
+  try {
+    const { id } = req.params;
+
+    await studentModel.findByIdAndDelete(id);
+
+    // Success response
+    return res.status(200).json({
+      success: true,
+      message: "Student deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error in deleteStudentController:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
     });
   }
 };

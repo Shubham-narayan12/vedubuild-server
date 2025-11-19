@@ -255,11 +255,15 @@ export const getAllStudentData = async (req, res) => {
   }
 };
 
-// BULK APPLY
+
+// BULK APPLY - SOLID VERSION
 export const bulkApplyController = async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ message: "No file uploaded" });
+      return res.status(400).json({ 
+        success: false,
+        message: "Please Upload file" 
+      });
     }
 
     const workbook = new ExcelJS.Workbook();
@@ -267,9 +271,9 @@ export const bulkApplyController = async (req, res) => {
 
     const worksheet = workbook.worksheets[0];
     const rows = [];
-    const headerRow = worksheet.getRow(1);
-
+    
     // ✅ Header cleanup (trim + lowercase + underscores)
+    const headerRow = worksheet.getRow(1);
     const headers = headerRow.values.slice(1).map((h) =>
       (h || "")
         .toString()
@@ -279,6 +283,7 @@ export const bulkApplyController = async (req, res) => {
         .replace(/[^a-z0-9_]/g, "")
     );
 
+    // ✅ Rows nikaalo
     worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
       if (rowNumber === 1) return;
       const rowVals = row.values.slice(1);
@@ -289,101 +294,155 @@ export const bulkApplyController = async (req, res) => {
       rows.push(obj);
     });
 
-    // GENERATE RANDOM ID
-    const generateAppID = (scholarship) => {
-      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-      let randomPart = "";
-      for (let i = 0; i < 6; i++) {
-        randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
+    if (rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Excel File is Empty"
+      });
+    }
+
+    let successCount = 0;
+    let skipCount = 0;
+    const errors = [];
+    const existingAadhars = new Set();
+
+    // ✅ Pehle se existing aadhar numbers nikaal lo
+    const existingStudents = await studentModel.find({}, 'aadharNo');
+    existingStudents.forEach(student => {
+      if (student.aadharNo) {
+        existingAadhars.add(student.aadharNo.toString().trim());
       }
+    });
 
-      const cleanScholarship = (scholarship || "GENERIC")
-        .toString()
-        .replace(/[^a-zA-Z0-9]/g, "")
-        .toUpperCase();
+    // ✅ Process students one by one
+    const studentsToInsert = [];
 
-      return `VEDU/${cleanScholarship}/${randomPart}`;
-    };
+    for (let i = 0; i < rows.length; i++) {
+      try {
+        const row = rows[i];
+        
+        // ✅ Required fields check karo
+        if (!row.aadharno && !row.aadhar_no) {
+          errors.push(`Row ${i + 2}: Aadhar number missing`);
+          skipCount++;
+          continue;
+        }
 
-    // ✅ Transform Data (ab headers ke normalized keys use karenge)
-    let studentsData = await Promise.all(
-      rows.map(async (r) => {
-        const scholarship = r.scholarship ?? r.course ?? "";
+        const aadharNo = String(row.aadharno || row.aadhar_no || "").trim();
+        
+        // ✅ Aadhar duplicate check (existing + current batch)
+        if (existingAadhars.has(aadharNo)) {
+          errors.push(`Row ${i + 2}: Aadhar ${aadharNo} already exists`);
+          skipCount++;
+          continue;
+        }
 
-        const rawPassword = r.mobileno
-          ? String(r.mobileno)
-          : r.mobile
-          ? String(r.mobile)
-          : "123456";
+        // ✅ Mobile number validation
+        const mobileNo = row.mobileno || row.mobile;
+        if (!mobileNo) {
+          errors.push(`Row ${i + 2}: Mobile number missing`);
+          skipCount++;
+          continue;
+        }
 
+        const mobileStr = String(mobileNo).trim();
+        if (mobileStr.length !== 10 || isNaN(mobileStr)) {
+          errors.push(`Row ${i + 2}: Invalid mobile number ${mobileStr}`);
+          skipCount++;
+          continue;
+        }
+
+        // ✅ Password banayo
+        const rawPassword = mobileStr; // Mobile number as password
         const hashedPassword = await bcrypt.hash(rawPassword, 10);
 
-        return {
-          aplication_id: generateAppID(scholarship),
-          studentName: r.studentname ?? r.name ?? "",
-          mobileNo: r.mobileno ? Number(r.mobileno) : null,
-          emailId: r.emailid ?? "",
+        // ✅ Student object banao (CSV fields + default values)
+        const studentData = {
+          aplication_id: row.applicationid || row.application_id ,
+          studentName: row.studentname || row.name || "",
+          fatherName: row.fathername || row.father_name || "N/A", // Required field
+          mobileNo: parseInt(mobileStr),
+          emailId: row.emailid || row.email || "",
           password: hashedPassword,
-          address: r.address ?? r.residence ?? "",
-          city: r.city ?? "",
-          district: r.district ?? "",
-          pinCode: r.pincode ? Number(r.pincode) : null,
-          schoolCollege: r.schoolcollege ?? r.college ?? "",
-          aadharNo: r.aadharno ? String(r.aadharno) : null,
-          scholarship,
-          studentClass: r.studentclass ?? r.standard ?? "",
-          combination: r.combination ?? "",
+          address: row.address || row.residence || "",
+          city: row.city || "",
+          district: row.district || "",
+          pinCode: row.pincode || row.pin_code ? parseInt(row.pincode || row.pin_code) : null,
+          schoolCollege: row.schoolcollege || row.college || "",
+          boardName: row.boardname || row.board_name || "N/A", // Required field
+          aadharNo: aadharNo,
+          scholarship: row.scholarship || "General", // ✅ YEH LINE THIK KARI
+          studentClass: row.studentclass || row.standard || "",
+          combination: row.combination || "N/A",
+          
+          // ✅ Default values for non-CSV fields
+          paymentStatus: row.paymentStatus,
+          credentialsSentAt: null,
+          otp: null,
+          otpExpire: null,
+          offersRedeemed: [],
+          canDownloadCertificate: false
         };
-      })
-    );
 
-    // ✅ Filter required fields
-    studentsData = studentsData.filter(
-      (s) =>
-        s.aplication_id &&
-        s.studentName &&
-        s.mobileNo &&
-        s.emailId &&
-        s.password &&
-        s.address &&
-        s.city &&
-        s.district &&
-        s.pinCode &&
-        s.schoolCollege &&
-        s.aadharNo &&
-        s.scholarship
-    );
+        // ✅ Final validation - check all required fields
+        const requiredFields = ['studentName', 'fatherName', 'mobileNo', 'emailId', 'address', 'city', 'district', 'pinCode', 'schoolCollege', 'boardName', 'aadharNo', 'scholarship'];
+        const missingFields = requiredFields.filter(field => !studentData[field]);
 
-    // ✅ Insert into DB
-    let result;
-    try {
-      result = await studentModel.insertMany(studentsData, {
-        ordered: false,
-      });
-    } catch (error) {
-      if (error && error.writeErrors) {
-        const inserted = error.result?.nInserted ?? 0;
-        return res.status(200).json({
-          message: "Upload done with some duplicates/errors skipped",
-          totalRows: rows.length,
-          insertedCount: inserted,
-          skippedCount: studentsData.length - inserted,
-        });
+        if (missingFields.length > 0) {
+          errors.push(`Row ${i + 2}: Missing fields - ${missingFields.join(', ')}`);
+          skipCount++;
+          continue;
+        }
+
+        // ✅ Add to batch
+        studentsToInsert.push(studentData);
+        existingAadhars.add(aadharNo); // Current batch mein duplicate na ho
+        successCount++;
+
+      } catch (error) {
+        errors.push(`Row ${i + 2}: ${error.message}`);
+        skipCount++;
       }
-      throw error;
+    }
+
+    // ✅ Database mein insert karo
+    let insertResult = [];
+    if (studentsToInsert.length > 0) {
+      try {
+        insertResult = await studentModel.insertMany(studentsToInsert, { 
+          ordered: false 
+        });
+      } catch (insertError) {
+        if (insertError.writeErrors) {
+          // Duplicates handle karo
+          const actuallyInserted = insertError.result?.nInserted || 0;
+          successCount = actuallyInserted;
+          skipCount += (studentsToInsert.length - actuallyInserted);
+          
+          insertError.writeErrors.forEach(error => {
+            errors.push(`DB Error: ${error.errmsg}`);
+          });
+        } else {
+          throw insertError;
+        }
+      }
     }
 
     return res.status(200).json({
-      message: "Upload processed successfully",
+      success: true,
+      message: `Ho gaya kaam! ${successCount} students add, ${skipCount} skip kare!`,
+      inserted: successCount,
+      skipped: skipCount,
       totalRows: rows.length,
-      insertedCount: result.length,
-      skippedCount: studentsData.length - result.length,
+      errors: errors.length > 0 ? errors.slice(0, 10) : undefined // First 10 errors dikhao
     });
+
   } catch (error) {
-    console.error("UploadStudentsExcel error:", error);
+    console.error("Bhai student upload error:", error);
     return res.status(500).json({
-      message: "Server error processing file",
-      error: error.message || error,
+      success: false,
+      message: "Server mein kuch gadbad hai!",
+      error: error.message
     });
   }
 };
@@ -510,6 +569,7 @@ export const studentLoginController = async (req, res) => {
         message: "Login successful",
         token,
         student: {
+          _id:user._id,
           application_id: user.aplication_id,
           studentName: user.studentName,
           fatherName: user.fatherName,

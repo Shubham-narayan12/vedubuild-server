@@ -81,6 +81,19 @@ const studentSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+  offersRedeemed: [
+  {
+    offerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Offers",
+    },
+    couponCode: String, // jis code ko use kiya
+    redeemedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+],
   canDownloadCertificate: {
     type: Boolean,
     default: false,

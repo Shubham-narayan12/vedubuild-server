@@ -374,9 +374,9 @@ export const bulkApplyController = async (req, res) => {
           scholarship: row.scholarship || "General", // ✅ YEH LINE THIK KARI
           studentClass: row.studentclass || row.standard || "",
           combination: row.combination || "N/A",
-          
+          paymentStatus: row.paymentstatus|| "Pending",
+
           // ✅ Default values for non-CSV fields
-          paymentStatus: row.paymentStatus,
           credentialsSentAt: null,
           otp: null,
           otpExpire: null,
@@ -385,7 +385,7 @@ export const bulkApplyController = async (req, res) => {
         };
 
         // ✅ Final validation - check all required fields
-        const requiredFields = ['studentName', 'fatherName', 'mobileNo', 'emailId', 'address', 'city', 'district', 'pinCode', 'schoolCollege', 'boardName', 'aadharNo', 'scholarship'];
+        const requiredFields = ['studentName', 'fatherName', 'mobileNo', 'emailId', 'address', 'city', 'district', 'pinCode', 'schoolCollege', 'boardName', 'aadharNo', 'scholarship','paymentStatus'];
         const missingFields = requiredFields.filter(field => !studentData[field]);
 
         if (missingFields.length > 0) {
@@ -428,9 +428,11 @@ export const bulkApplyController = async (req, res) => {
       }
     }
 
+    console.log(studentsToInsert);
+
     return res.status(200).json({
       success: true,
-      message: `Ho gaya kaam! ${successCount} students add, ${skipCount} skip kare!`,
+      message: `Bulk upload completed! ${successCount} students added, ${skipCount} skipped!`,
       inserted: successCount,
       skipped: skipCount,
       totalRows: rows.length,
@@ -438,10 +440,10 @@ export const bulkApplyController = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Bhai student upload error:", error);
+    console.error("Student upload error:", error);
     return res.status(500).json({
       success: false,
-      message: "Server mein kuch gadbad hai!",
+      message: "Server Error",
       error: error.message
     });
   }

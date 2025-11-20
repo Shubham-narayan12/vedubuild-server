@@ -299,27 +299,42 @@ export const editOfferController = async (req, res) => {
   }
 };
 
-// GET ALL OFFERS + ACTIVE OFFERS + COUPON COUNTS
+// GET ALL OFFERS + ACTIVE + INACTIVE + COUPON COUNTS
 export const getAllOffersController = async (req, res) => {
   try {
-    // All offers (latest first)
+    // Get all offers (latest first)
     const offers = await OfferModel.find().sort({ createdAt: -1 });
 
-    // Only active offers
-    const activeOffers = offers.filter((offer) => offer.isActive === true);
+    // Add used / unused coupon count for EACH offer
+    const offersWithCounts = offers.map((offer) => {
+      let used = 0;
+      let unused = 0;
 
-    // ----- COUNT TOTAL USED / UNUSED COUPON CODES -----
-    let usedCount = 0;
-    let unusedCount = 0;
-
-    offers.forEach((offer) => {
       offer.couponCodes.forEach((coupon) => {
-        if (coupon.isUsed) {
-          usedCount++;
-        } else {
-          unusedCount++;
-        }
+        if (coupon.isUsed) used++;
+        else unused++;
       });
+
+      return {
+        ...offer._doc,
+        usedCoupons: used,
+        unusedCoupons: unused,
+      };
+    });
+
+    // Active offers
+    const activeOffers = offersWithCounts.filter((offer) => offer.isActive === true);
+
+    // Inactive offers
+    const inactiveOffers = offersWithCounts.filter((offer) => offer.isActive === false);
+
+    // TOTAL coupon counts across all offers
+    let totalUsed = 0;
+    let totalUnused = 0;
+
+    offersWithCounts.forEach((offer) => {
+      totalUsed += offer.usedCoupons;
+      totalUnused += offer.unusedCoupons;
     });
 
     return res.status(200).json({
@@ -329,14 +344,16 @@ export const getAllOffersController = async (req, res) => {
       // Offer counts
       count: offers.length,
       activeCount: activeOffers.length,
+      inactiveCount: inactiveOffers.length,
 
-      // Coupon counts
-      totalUsedCoupons: usedCount,
-      totalUnusedCoupons: unusedCount,
+      // Coupon totals
+      totalUsedCoupons: totalUsed,
+      totalUnusedCoupons: totalUnused,
 
       // Data
-      offers,
+      offers: offersWithCounts,
       activeOffers,
+      inactiveOffers,
     });
   } catch (error) {
     console.error("❌ Error in getAllOffersController:", error);
@@ -347,6 +364,7 @@ export const getAllOffersController = async (req, res) => {
     });
   }
 };
+
 
 // GET OFFER DETAILS BY ID
 export const singleOfferDetailController = async (req, res) => {

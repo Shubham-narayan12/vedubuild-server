@@ -5,9 +5,9 @@ import {
   deleteStudentController,
   downloadCertificateController,
   downloadExcelController,
+  downloadTemplateController,
   getAllStudentData,
   getStudentImage,
-  
   requestOtpController,
   resetPasswordWithOtpController,
   sendStudentCredentials,
@@ -46,6 +46,9 @@ router.post(
 
 //SHOW PROFILE PIC
 router.get("/image/:emailId", getStudentImage);
+
+//DOWNLOAD STUDENT EXCEL TEMPLATE
+router.get("/student-template",downloadTemplateController)
 
 //BULK APPLY
 router.post("/bulk-apply", upload.single("file"), bulkApplyController);

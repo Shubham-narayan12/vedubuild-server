@@ -58,6 +58,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
 app.use(bodyParser.json());
+app.use("/public", express.static("public"));
 
 // Routes
 app.use("/api/vedubuildApply", applyRoutes);

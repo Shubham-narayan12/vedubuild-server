@@ -255,14 +255,54 @@ export const getAllStudentData = async (req, res) => {
   }
 };
 
+//DOWNLOAD STUDENT TEMPLATE
+export const downloadTemplateController = async (req, res) => {
+  try {
+    // STEP 1: File path banate hain (public/files/student_template.xlsx)
+    const filePath = path.join(
+      process.cwd(),
+      "public",
+      "files",
+      "student_template.xlsx"
+    );
+
+    // STEP 2: Check file exist karti hai ya nahi
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({
+        success: false,
+        message: "Template file not found on server",
+      });
+    }
+
+    // STEP 3: File download headers set karna
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=student_template.xlsx"
+    );
+
+    // STEP 4: File ko directly download karwana
+    return res.download(filePath);
+  } catch (error) {
+    console.log("Download Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error downloading template",
+      error: error.message,
+    });
+  }
+};
 
 // BULK APPLY - SOLID VERSION
 export const bulkApplyController = async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "Please Upload file" 
+        message: "Please Upload file",
       });
     }
 
@@ -271,7 +311,7 @@ export const bulkApplyController = async (req, res) => {
 
     const worksheet = workbook.worksheets[0];
     const rows = [];
-    
+
     // ✅ Header cleanup (trim + lowercase + underscores)
     const headerRow = worksheet.getRow(1);
     const headers = headerRow.values.slice(1).map((h) =>
@@ -297,7 +337,7 @@ export const bulkApplyController = async (req, res) => {
     if (rows.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "Excel File is Empty"
+        message: "Excel File is Empty",
       });
     }
 
@@ -307,8 +347,8 @@ export const bulkApplyController = async (req, res) => {
     const existingAadhars = new Set();
 
     // ✅ Pehle se existing aadhar numbers nikaal lo
-    const existingStudents = await studentModel.find({}, 'aadharNo');
-    existingStudents.forEach(student => {
+    const existingStudents = await studentModel.find({}, "aadharNo");
+    existingStudents.forEach((student) => {
       if (student.aadharNo) {
         existingAadhars.add(student.aadharNo.toString().trim());
       }
@@ -320,7 +360,7 @@ export const bulkApplyController = async (req, res) => {
     for (let i = 0; i < rows.length; i++) {
       try {
         const row = rows[i];
-        
+
         // ✅ Required fields check karo
         if (!row.aadharno && !row.aadhar_no) {
           errors.push(`Row ${i + 2}: Aadhar number missing`);
@@ -329,7 +369,7 @@ export const bulkApplyController = async (req, res) => {
         }
 
         const aadharNo = String(row.aadharno || row.aadhar_no || "").trim();
-        
+
         // ✅ Aadhar duplicate check (existing + current batch)
         if (existingAadhars.has(aadharNo)) {
           errors.push(`Row ${i + 2}: Aadhar ${aadharNo} already exists`);
@@ -358,7 +398,7 @@ export const bulkApplyController = async (req, res) => {
 
         // ✅ Student object banao (CSV fields + default values)
         const studentData = {
-          aplication_id: row.applicationid || row.application_id ,
+          aplication_id: row.applicationid || row.application_id,
           studentName: row.studentname || row.name || "",
           fatherName: row.fathername || row.father_name || "N/A", // Required field
           mobileNo: parseInt(mobileStr),
@@ -367,29 +407,50 @@ export const bulkApplyController = async (req, res) => {
           address: row.address || row.residence || "",
           city: row.city || "",
           district: row.district || "",
-          pinCode: row.pincode || row.pin_code ? parseInt(row.pincode || row.pin_code) : null,
+          pinCode:
+            row.pincode || row.pin_code
+              ? parseInt(row.pincode || row.pin_code)
+              : null,
           schoolCollege: row.schoolcollege || row.college || "",
           boardName: row.boardname || row.board_name || "N/A", // Required field
           aadharNo: aadharNo,
           scholarship: row.scholarship || "General", // ✅ YEH LINE THIK KARI
           studentClass: row.studentclass || row.standard || "",
           combination: row.combination || "N/A",
-          paymentStatus: row.paymentstatus|| "Pending",
+          paymentStatus: row.paymentstatus || "Pending",
 
           // ✅ Default values for non-CSV fields
           credentialsSentAt: null,
           otp: null,
           otpExpire: null,
           offersRedeemed: [],
-          canDownloadCertificate: false
+          canDownloadCertificate: false,
         };
 
         // ✅ Final validation - check all required fields
-        const requiredFields = ['studentName', 'fatherName', 'mobileNo', 'emailId', 'address', 'city', 'district', 'pinCode', 'schoolCollege', 'boardName', 'aadharNo', 'scholarship','paymentStatus'];
-        const missingFields = requiredFields.filter(field => !studentData[field]);
+        const requiredFields = [
+          "studentName",
+          "fatherName",
+          "mobileNo",
+          "emailId",
+          "address",
+          "city",
+          "district",
+          "pinCode",
+          "schoolCollege",
+          "boardName",
+          "aadharNo",
+          "scholarship",
+          "paymentStatus",
+        ];
+        const missingFields = requiredFields.filter(
+          (field) => !studentData[field]
+        );
 
         if (missingFields.length > 0) {
-          errors.push(`Row ${i + 2}: Missing fields - ${missingFields.join(', ')}`);
+          errors.push(
+            `Row ${i + 2}: Missing fields - ${missingFields.join(", ")}`
+          );
           skipCount++;
           continue;
         }
@@ -398,7 +459,6 @@ export const bulkApplyController = async (req, res) => {
         studentsToInsert.push(studentData);
         existingAadhars.add(aadharNo); // Current batch mein duplicate na ho
         successCount++;
-
       } catch (error) {
         errors.push(`Row ${i + 2}: ${error.message}`);
         skipCount++;
@@ -409,17 +469,17 @@ export const bulkApplyController = async (req, res) => {
     let insertResult = [];
     if (studentsToInsert.length > 0) {
       try {
-        insertResult = await studentModel.insertMany(studentsToInsert, { 
-          ordered: false 
+        insertResult = await studentModel.insertMany(studentsToInsert, {
+          ordered: false,
         });
       } catch (insertError) {
         if (insertError.writeErrors) {
           // Duplicates handle karo
           const actuallyInserted = insertError.result?.nInserted || 0;
           successCount = actuallyInserted;
-          skipCount += (studentsToInsert.length - actuallyInserted);
-          
-          insertError.writeErrors.forEach(error => {
+          skipCount += studentsToInsert.length - actuallyInserted;
+
+          insertError.writeErrors.forEach((error) => {
             errors.push(`DB Error: ${error.errmsg}`);
           });
         } else {
@@ -428,23 +488,20 @@ export const bulkApplyController = async (req, res) => {
       }
     }
 
-    console.log(studentsToInsert);
-
     return res.status(200).json({
       success: true,
       message: `Bulk upload completed! ${successCount} students added, ${skipCount} skipped!`,
       inserted: successCount,
       skipped: skipCount,
       totalRows: rows.length,
-      errors: errors.length > 0 ? errors.slice(0, 10) : undefined // First 10 errors dikhao
+      errors: errors.length > 0 ? errors.slice(0, 10) : undefined, // First 10 errors dikhao
     });
-
   } catch (error) {
     console.error("Student upload error:", error);
     return res.status(500).json({
       success: false,
       message: "Server Error",
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -571,7 +628,7 @@ export const studentLoginController = async (req, res) => {
         message: "Login successful",
         token,
         student: {
-          _id:user._id,
+          _id: user._id,
           application_id: user.aplication_id,
           studentName: user.studentName,
           fatherName: user.fatherName,
@@ -786,7 +843,7 @@ export const updatePaymentStatusController = async (req, res) => {
 };
 
 //DELETE STUDENT BY ID
-export const deleteStudentController = async (req ,res) => {
+export const deleteStudentController = async (req, res) => {
   try {
     const { id } = req.params;
 
